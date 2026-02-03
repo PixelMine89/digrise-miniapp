@@ -133,8 +133,23 @@ document.getElementById("mineBtn").onclick = async () => {
 
   renderPlayer(data.user);
 
-  document.getElementById("reward").innerText =
-    data.reward ? `Найдено: ${data.reward}` : "Ничего не найдено";
+  const rewardEl = document.getElementById("reward");
+rewardEl.innerText = "";
+
+// сообщение ТОЛЬКО если блок был сломан
+if (data.reward) {
+  const rewardNames = {
+    coal: "Уголь",
+    copper_ore: "Медная руда",
+    iron_ore: "Железная руда",
+    gold_ore: "Золотая руда",
+    diamond_ore: "Алмазная руда"
+  };
+
+  rewardEl.innerText =
+    `Получено: ${rewardNames[data.reward]} ×1`;
+}
+  
 };
 
 loadPlayer();
