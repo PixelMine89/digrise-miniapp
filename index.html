@@ -27,113 +27,117 @@
       opacity: 0.7;
       font-size: 12px;
     }
+
+    button {
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>⛏️ OreMine</h2>
+<h2>⛏️ OreMine</h2>
 
-  <div id="status" class="box">
-    Загрузка...
+<div id="status" class="box">Загрузка...</div>
+
+<div id="player" class="box" style="display:none">
+
+  <div><span class="label">User ID:</span> <span id="uid"></span></div>
+  <div><span class="label">Энергия:</span> <span id="energy"></span></div>
+  <div><span class="label">Глубина:</span> <span id="depth"></span></div>
+
+  <div class="box">
+    <div class="label">Руда</div>
+    <div>🪨 Уголь: <span id="ore-coal"></span></div>
+    <div>🟤 Медь: <span id="ore-copper"></span></div>
+    <div>⚙️ Железо: <span id="ore-iron"></span></div>
+    <div>🟡 Золото: <span id="ore-gold"></span></div>
+    <div>💎 Алмазы: <span id="ore-diamond"></span></div>
   </div>
-  
-  <div id="player" class="box" style="display:none">
-    <div><span class="label">User ID:</span> <span id="uid"></span></div>
-    <div><span class="label">Энергия:</span> <span id="energy"></span></div>
-    <div><span class="label">Глубина:</span> <span id="depth"></span></div>
-    <div><span class="label">Уголь:</span> <span id="coal"></span></div>
-    
-    <div class="box">
-      <div><span class="label">Блок:</span> камень</div>
-      <div>
-        <span class="label">Прочность:</span>
-        <span id="blockHp"></span>
-      </div>
+
+  <div class="box">
+    <div><span class="label">Блок:</span> <span id="blockType"></span></div>
+    <div>
+      <span class="label">Прочность:</span>
+      <span id="blockHp"></span>
     </div>
-    
-    <div style="margin-top:12px">
-      <button id="mineBtn">⛏️ Копать</button>
-    </div>
-    
-    <div id="reward" style="margin-top:8px; opacity:0.8"></div>
   </div>
+
+  <button id="mineBtn">⛏️ Копать</button>
+
+  <div id="reward" style="margin-top:8px; opacity:0.8"></div>
+
+</div>
 
 <script>
-  const tg = window.Telegram.WebApp;
-  tg.ready();
+const tg = window.Telegram.WebApp;
+tg.ready();
 
-  const API_URL = "https://oremine-worker.orange123893-383.workers.dev";
-  let currentUserId = null;
+const API_URL = "https://oremine-worker.orange123893-383.workers.dev";
+let currentUserId = null;
 
-  async function loadPlayer() {
-    if (!tg.initDataUnsafe?.user?.id) {
-      document.getElementById("status").innerText =
-        "Ошибка: не удалось получить Telegram user.id";
-      return;
-    }
+const BLOCK_NAMES = {
+  stone: "Камень",
+  coal: "Угольный блок",
+  copper: "Медный блок",
+  iron: "Железный блок",
+  gold: "Золотой блок",
+  diamond: "Алмазный блок"
+};
 
-    currentUserId = tg.initDataUnsafe.user.id;
-
-    document.getElementById("status").innerText = "Загрузка игрока...";
-
-    try {
-      const response = await fetch(
-        `${API_URL}/getUser?user_id=${currentUserId}`
-      );
-
-      const player = await response.json();
-
-      renderPlayer(player);
-
-    } catch (e) {
-      document.getElementById("status").innerText =
-        "Ошибка загрузки данных";
-    }
+async function loadPlayer() {
+  if (!tg.initDataUnsafe?.user?.id) {
+    document.getElementById("status").innerText =
+      "Ошибка: Telegram user.id не найден";
+    return;
   }
 
-  function renderPlayer(player) {
-    document.getElementById("status").style.display = "none";
-    document.getElementById("player").style.display = "block";
+  currentUserId = tg.initDataUnsafe.user.id;
 
-    document.getElementById("uid").innerText = player.id;
-    document.getElementById("energy").innerText =
-      `${player.energy} / ${player.maxEnergy}`;
-    document.getElementById("depth").innerText = player.depth;
-    document.getElementById("coal").innerText = player.ores.coal;
-    document.getElementById("blockHp").innerText =
-  `${player.currentBlock.hp} / ${player.currentBlock.maxHp}`;
-    
-  }
-
-  loadPlayer();
-
-  document.getElementById("mineBtn").onclick = mine;
-
-async function mine() {
-  try {
-    const response = await fetch(
-      `${API_URL}/mine?user_id=${currentUserId}`
-    );
-
-    const data = await response.json();
-
-    if (data.error === "NO_ENERGY") {
-      alert("Нет энергии");
-      return;
-    }
-
-    renderPlayer(data.user);
-
-    document.getElementById("reward").innerText =
-      data.reward
-        ? `Найдено: ${data.reward}`
-        : "Ничего не найдено";
-
-  } catch (e) {
-    alert("Ошибка при копании");
-  }
+  const res = await fetch(`${API_URL}/getUser?user_id=${currentUserId}`);
+  const player = await res.json();
+  renderPlayer(player);
 }
-  
+
+function renderPlayer(player) {
+  document.getElementById("status").style.display = "none";
+  document.getElementById("player").style.display = "block";
+
+  document.getElementById("uid").innerText = player.id;
+  document.getElementById("energy").innerText =
+    `${player.energy} / ${player.maxEnergy}`;
+  document.getElementById("depth").innerText = player.depth;
+
+  document.getElementById("ore-coal").innerText = player.ores.coal;
+  document.getElementById("ore-copper").innerText = player.ores.copper_ore;
+  document.getElementById("ore-iron").innerText = player.ores.iron_ore;
+  document.getElementById("ore-gold").innerText = player.ores.gold_ore;
+  document.getElementById("ore-diamond").innerText = player.ores.diamond_ore;
+
+  document.getElementById("blockType").innerText =
+    BLOCK_NAMES[player.currentBlock.type] || player.currentBlock.type;
+
+  document.getElementById("blockHp").innerText =
+    `${player.currentBlock.hp} / ${player.currentBlock.maxHp}`;
+}
+
+document.getElementById("mineBtn").onclick = async () => {
+  const res = await fetch(`${API_URL}/mine?user_id=${currentUserId}`);
+  const data = await res.json();
+
+  if (data.error === "NO_ENERGY") {
+    alert("Нет энергии");
+    return;
+  }
+
+  renderPlayer(data.user);
+
+  document.getElementById("reward").innerText =
+    data.reward ? `Найдено: ${data.reward}` : "Ничего не найдено";
+};
+
+loadPlayer();
 </script>
 
 </body>
