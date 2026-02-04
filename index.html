@@ -269,11 +269,18 @@ button:disabled {
 <!-- ===== FURNACE ===== -->
 <div id="tab-furnace" class="tab">
   <div class="box resources">
-    <div>🪨 <span id="ore-coal"></span></div>
-    <div>🟤 <span id="ore-copper"></span></div>
-    <div>⚙️ <span id="ore-iron"></span></div>
-    <div>🟡 <span id="ore-gold"></span></div>
-    <div>💎 <span id="ore-diamond"></span></div>
+    <div>🪨 Уголь<span id="ore-coal"></span></div>
+    <div>🟤 Медная руда<span id="ore-copper"></span></div>
+    <div>⚙️ Железная руда<span id="ore-iron"></span></div>
+    <div>🟡 Золотая руда<span id="ore-gold"></span></div>
+    <div>💎 Алмазная руда<span id="ore-diamond"></span></div>
+  </div>
+
+  <div class="box resources">
+  🟤 Медные слитки<span id="ingot-copper"></span>
+  ⚙️ Железные слитки<span id="ingot-iron"></span>
+  🟡 Золотые слитки<span id="ingot-gold"></span>
+  💎 Алмазы<span id="ingot-diamond"></span>
   </div>
 
   <div class="furnace-core"></div>
@@ -613,6 +620,10 @@ function showTab(tab) {
     btn.classList.remove("active")
   );
 
+  document
+    .querySelector(`.nav-btn[onclick="showTab('${tab}')"]`)
+    .classList.add("active");
+
   const titles = {
     mine: "Шахта",
     furnace: "Печь",
@@ -636,6 +647,9 @@ async function loadPlayer() {
   const res = await fetch(`${API_URL}/getUser?user_id=${currentUserId}`);
   const player = await res.json();
   renderPlayer(player);
+
+  // 🔥 ВАЖНО: сразу открываем шахту
+  showTab("mine");
 }
 
 /* ================== MINE ================== */
@@ -721,12 +735,20 @@ function renderPlayer(player) {
     `${player.energy} / ${player.maxEnergy}`;
   document.getElementById("depth").innerText = player.depth;
 
+  // Руда
   document.getElementById("ore-coal").innerText = player.ores.coal;
   document.getElementById("ore-copper").innerText = player.ores.copper_ore;
   document.getElementById("ore-iron").innerText = player.ores.iron_ore;
   document.getElementById("ore-gold").innerText = player.ores.gold_ore;
   document.getElementById("ore-diamond").innerText = player.ores.diamond_ore;
 
+  // Слитки (печь + вывод)
+  document.getElementById("ingot-copper").innerText = player.ingots.copper || 0;
+  document.getElementById("ingot-iron").innerText = player.ingots.iron || 0;
+  document.getElementById("ingot-gold").innerText = player.ingots.gold || 0;
+  document.getElementById("ingot-diamond").innerText = player.ingots.diamond || 0;
+
+  // Блок
   document.getElementById("blockType").innerText =
     BLOCK_NAMES[player.currentBlock.type];
 
@@ -736,6 +758,7 @@ function renderPlayer(player) {
   document.getElementById("hpFill").style.width =
     (player.currentBlock.hp / player.currentBlock.maxHp) * 100 + "%";
 
+  // Печь
   document.getElementById("smeltXp").innerText = player.smeltXp || 0;
 
   const chance = Math.min(
@@ -781,7 +804,7 @@ function renderPickaxes(player) {
 
   player.pickaxes.forEach(p => {
     const eq = player.equippedPickaxeId === p.id;
-    const div = document.createElement("item");
+    const div = document.createElement("div");
     div.className = "item";
     div.innerHTML = `
       <b>${p.type.toUpperCase()} кирка</b><br>
@@ -796,7 +819,7 @@ function renderPickaxes(player) {
 }
 
 loadPlayer();
-  
+
 </script>
 
 </body>
