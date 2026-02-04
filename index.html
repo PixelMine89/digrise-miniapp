@@ -8,35 +8,161 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    body {
-      margin: 0;
-      padding: 16px;
-      background: #0f0f0f;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
+    :root {
+  --bg: #0b0e13;
+  --panel: #141824;
+  --panel-soft: #1b2032;
+  --accent: #f5c77a;
+  --muted: #9aa0b4;
+  --danger: #ff6b6b;
+  --success: #4cd964;
+}
 
-    .box {
-      background: #1c1c1c;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    .label {
-      opacity: 0.7;
-      font-size: 12px;
-    }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: white;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  padding-bottom: 90px;
+}
 
-    button {
-      padding: 10px;
-      width: 100%;
-      font-size: 16px;
-    }
+/* ===== HEADER ===== */
+.header {
+  text-align: center;
+  padding: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ===== COMMON ===== */
+.box {
+  background: linear-gradient(180deg, var(--panel), var(--panel-soft));
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+button {
+  background: linear-gradient(180deg, #f5c77a, #d6a956);
+  border: none;
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.4;
+}
+
+/* ===== TABS ===== */
+.tab {
+  display: none;
+  padding: 16px;
+}
+
+/* ===== MINE ===== */
+.mine-shaft {
+  height: 240px;
+  background: linear-gradient(180deg, #0c1020, #070a14);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.block {
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
+  background: #444;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.hp-bar {
+  width: 100%;
+  height: 8px;
+  background: #222;
+  border-radius: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: var(--success);
+}
+
+/* ===== FURNACE ===== */
+.resources {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.furnace-core {
+  height: 140px;
+  border-radius: 16px;
+  background: radial-gradient(circle, #ffae42, #5a2a00);
+  margin-bottom: 12px;
+}
+
+/* ===== EQUIP ===== */
+.item {
+  background: #1a1f33;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+/* ===== BOTTOM NAV ===== */
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0c0f1a;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid #222;
+}
+
+.nav-btn {
+  padding: 10px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.nav-btn.active {
+  color: var(--accent);
+}
+
+.nav-btn div {
+  font-size: 20px;
+}
   </style>
 </head>
 <body>
-
+<!--
 <h2>⛏️ OreMine</h2>
 
 <div class="box">
@@ -73,7 +199,7 @@
     <button id="mineBtn">⛏️ Копать</button>
 
     <div id="reward" style="margin-top:8px; opacity:0.8"></div>
-  </div> <!-- tab-mine -->
+  </div>
   <div id="tab-equip" class="box" style="display:none">
     <h3>⚒️ Крафт кирок</h3>
 
@@ -82,7 +208,7 @@
     <h3 style="margin-top:12px">🎒 Мои кирки</h3>
 
     <div id="my-pickaxes"></div>
-  </div> <!-- tab-equip -->
+  </div>
   <div id="tab-furnace" class="box" style="display:none">
     <h3>🔥 Печь</h3>
 
@@ -109,9 +235,94 @@
 
     <div id="smeltResult" style="margin-top:10px; opacity:0.8"></div>
 
-  </div> <!-- tab-furnace -->
+  </div>
+</div>
+-->
+
+<div class="header" id="tabTitle">Шахта</div>
+
+<div id="status" class="box">Загрузка...</div>
+
+<div id="player" style="display:none">
+
+<!-- ===== MINE ===== -->
+<div id="tab-mine" class="tab">
+  <div class="mine-shaft">
+    <div class="block" id="blockVisual">
+      <div id="blockType"></div>
+      <div class="hp-bar">
+        <div class="hp-fill" id="hpFill"></div>
+      </div>
+      <div id="blockHp"></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div>⚡ Энергия: <span id="energy"></span></div>
+    <div>⬇️ Глубина: <span id="depth"></span></div>
+  </div>
+
+  <button id="mineBtn">⛏️ Копать</button>
+  <div id="reward" style="margin-top:10px"></div>
 </div>
 
+<!-- ===== FURNACE ===== -->
+<div id="tab-furnace" class="tab">
+  <div class="box resources">
+    <div>🪨 <span id="ore-coal"></span></div>
+    <div>🟤 <span id="ore-copper"></span></div>
+    <div>⚙️ <span id="ore-iron"></span></div>
+    <div>🟡 <span id="ore-gold"></span></div>
+    <div>💎 <span id="ore-diamond"></span></div>
+  </div>
+
+  <div class="furnace-core"></div>
+
+  <div class="box">
+    <div>🔥 Опыт: <span id="smeltXp"></span></div>
+    <div>🎯 Шанс: <span id="smeltChance"></span></div>
+  </div>
+
+  <button onclick="smelt('copper')">Медь</button><br><br>
+  <button onclick="smelt('iron')">Железо</button><br><br>
+  <button onclick="smelt('gold')">Золото</button><br><br>
+  <button onclick="smelt('diamond')">Алмаз</button>
+
+  <div id="smeltResult"></div>
+</div>
+
+<!-- ===== EQUIP ===== -->
+<div id="tab-equip" class="tab">
+  <div class="box">
+    <h3>Крафт кирок</h3>
+    <div id="craft-pickaxes"></div>
+  </div>
+
+  <div class="box">
+    <h3>Мои кирки</h3>
+    <div id="my-pickaxes"></div>
+  </div>
+</div>
+
+<!-- ===== WITHDRAW ===== -->
+<div id="tab-withdraw" class="tab">
+  <div class="box">
+    <h3>💰 Вывод</h3>
+    <p class="label">Сезон ещё не завершён</p>
+    <p>Здесь будет информация о наградах и выводе</p>
+  </div>
+</div>
+
+</div>
+
+<!-- ===== NAV ===== -->
+<div class="nav">
+  <div class="nav-btn active" onclick="showTab('mine')"><div>⛏️</div>Шахта</div>
+  <div class="nav-btn" onclick="showTab('furnace')"><div>🔥</div>Печь</div>
+  <div class="nav-btn" onclick="showTab('equip')"><div>⚒️</div>Экип</div>
+  <div class="nav-btn" onclick="showTab('withdraw')"><div>💰</div>Вывод</div>
+</div>
+  
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready();
@@ -164,6 +375,9 @@ function showTab(tab) {
 
   document.getElementById("tab-furnace").style.display =
     tab === "furnace" ? "block" : "none";
+
+  document.getElementById("tab-withdraw").style.display =
+    tab === "withdraw" ? "block" : "none";
 }
 
 async function loadPlayer() {
