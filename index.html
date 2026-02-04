@@ -42,6 +42,7 @@
 <div class="box">
   <button onclick="showTab('mine')">⛏️ Шахта</button>
   <button onclick="showTab('equip')">⚒️ Экипировка</button>
+  <button onclick="showTab('furnace')">🔥 Печь</button>
 </div>
 
 <div id="status" class="box">Загрузка...</div>
@@ -82,6 +83,33 @@
 
     <div id="my-pickaxes"></div>
   </div> <!-- tab-equip -->
+  <div id="tab-furnace" class="box" style="display:none">
+    <h3>🔥 Печь</h3>
+
+    <div>Опыт плавки: <span id="smeltXp">0</span></div>
+    <div>Шанс успеха: <span id="smeltChance">50%</span></div>
+
+    <hr>
+
+    <button onclick="smelt('copper')">
+      🟤 Создать медный слиток
+    </button><br><br>
+
+    <button onclick="smelt('iron')">
+      ⚙️ Создать железный слиток
+    </button><br><br>
+
+    <button onclick="smelt('gold')">
+      🟡 Создать золотой слиток
+    </button><br><br>
+
+    <button onclick="smelt('diamond')">
+      💎 Создать алмаз
+    </button>
+
+    <div id="smeltResult" style="margin-top:10px; opacity:0.8"></div>
+
+  </div> <!-- tab-furnace -->
 </div>
 
 <script>
@@ -183,6 +211,35 @@ async function equipPickaxe(id) {
   loadPlayer();
 }
 
+async function smelt(type) {
+  try {
+    const res = await fetch(
+      `${API_URL}/smelt?user_id=${currentUserId}&ore=${type}`
+    );
+
+    const data = await res.json();
+
+    if (data.error) {
+      if (data.error === "NO_ORE") alert("Нет руды");
+      if (data.error === "NO_COAL") alert("Нужно 2 угля");
+      return;
+    }
+
+    if (data.result === "success") {
+      document.getElementById("smeltResult").innerText =
+        "✅ Получен слиток!";
+    } else {
+      document.getElementById("smeltResult").innerText =
+        "❌ Не удалось переплавить";
+    }
+
+    loadPlayer();
+
+  } catch {
+    alert("Ошибка печи");
+  }
+}
+
 function renderPlayer(player) {
   document.getElementById("status").style.display = "none";
   document.getElementById("player").style.display = "block";
@@ -206,6 +263,17 @@ function renderPlayer(player) {
 
   renderCraft(player);
   renderPickaxes(player);
+
+  document.getElementById("smeltXp").innerText =
+  player.smeltXp || 0;
+
+const chance = Math.min(
+  0.5 + ((player.smeltXp || 0) / 1000) * 0.3,
+  0.8
+);
+
+document.getElementById("smeltChance").innerText =
+  Math.floor(chance * 100) + "%";
 }
 
 function renderCraft(player) {
