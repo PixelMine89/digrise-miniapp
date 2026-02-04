@@ -324,6 +324,7 @@ button:disabled {
 </div>
   
 <script>
+  /*
 const tg = window.Telegram.WebApp;
 tg.ready();
 
@@ -578,6 +579,224 @@ if (data.reward) {
 };
 
 loadPlayer();
+*/
+const tg = window.Telegram.WebApp;
+tg.ready();
+
+const API_URL = "https://oremine-worker.orange123893-383.workers.dev";
+let currentUserId = null;
+
+const BLOCK_NAMES = {
+  stone: "Камень",
+  coal: "Угольный блок",
+  copper: "Медный блок",
+  iron: "Железный блок",
+  gold: "Золотой блок",
+  diamond: "Алмазный блок"
+};
+
+const PICKAXE_CRAFTS = [
+  { type: "copper", name: "Медная кирка", cost: 25, chance: 0.8 },
+  { type: "iron", name: "Железная кирка", cost: 25, chance: 0.6 },
+  { type: "gold", name: "Золотая кирка", cost: 25, chance: 0.4 },
+  { type: "diamond", name: "Алмазная кирка", cost: 25, chance: 0.2 }
+];
+
+/* ================== NAV ================== */
+function showTab(tab) {
+  ["mine", "furnace", "equip", "withdraw"].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display =
+      t === tab ? "block" : "none";
+  });
+
+  document.querySelectorAll(".nav-btn").forEach(btn =>
+    btn.classList.remove("active")
+  );
+
+  const titles = {
+    mine: "Шахта",
+    furnace: "Печь",
+    equip: "Экипировка",
+    withdraw: "Вывод"
+  };
+
+  document.getElementById("tabTitle").innerText = titles[tab];
+}
+
+/* ================== LOAD PLAYER ================== */
+async function loadPlayer() {
+  if (!tg.initDataUnsafe?.user?.id) {
+    document.getElementById("status").innerText =
+      "Ошибка Telegram ID";
+    return;
+  }
+
+  currentUserId = tg.initDataUnsafe.user.id;
+
+  const res = await fetch(`${API_URL}/getUser?user_id=${currentUserId}`);
+  const player = await res.json();
+  renderPlayer(player);
+}
+
+/* ================== MINE ================== */
+document.getElementById("mineBtn").onclick = async () => {
+  const res = await fetch(`${API_URL}/mine?user_id=${currentUserId}`);
+  const data = await res.json();
+
+  if (data.error === "NO_ENERGY") {
+    alert("Нет энергии");
+    return;
+  }
+
+  renderPlayer(data.user);
+
+  const rewardEl = document.getElementById("reward");
+  rewardEl.innerText = "";
+
+  if (data.reward) {
+    const names = {
+      coal: "Уголь",
+      copper_ore: "Медная руда",
+      iron_ore: "Железная руда",
+      gold_ore: "Золотая руда",
+      diamond_ore: "Алмазная руда"
+    };
+    rewardEl.innerText = `Получено: ${names[data.reward]} ×1`;
+  }
+};
+
+/* ================== FURNACE ================== */
+async function smelt(type) {
+  const res = await fetch(
+    `${API_URL}/smelt?user_id=${currentUserId}&ore=${type}`
+  );
+
+  const data = await res.json();
+  const out = document.getElementById("smeltResult");
+
+  if (data.error) {
+    out.innerText =
+      data.error === "NO_ORE"
+        ? "Нет руды"
+        : "Нужно 2 угля";
+    return;
+  }
+
+  out.innerText =
+    data.result === "success"
+      ? "✅ Получен слиток"
+      : "❌ Не удалось";
+
+  loadPlayer();
+}
+
+/* ================== EQUIP ================== */
+async function craftPickaxe(type) {
+  const res = await fetch(`${API_URL}/craftPickaxe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: currentUserId, type })
+  });
+
+  const data = await res.json();
+  alert(data.success ? "Кирка создана!" : "Неудача 😢");
+  loadPlayer();
+}
+
+async function equipPickaxe(id) {
+  await fetch(`${API_URL}/equipPickaxe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: currentUserId, pickaxeId: id })
+  });
+  loadPlayer();
+}
+
+/* ================== RENDER ================== */
+function renderPlayer(player) {
+  document.getElementById("status").style.display = "none";
+  document.getElementById("player").style.display = "block";
+
+  document.getElementById("energy").innerText =
+    `${player.energy} / ${player.maxEnergy}`;
+  document.getElementById("depth").innerText = player.depth;
+
+  document.getElementById("ore-coal").innerText = player.ores.coal;
+  document.getElementById("ore-copper").innerText = player.ores.copper_ore;
+  document.getElementById("ore-iron").innerText = player.ores.iron_ore;
+  document.getElementById("ore-gold").innerText = player.ores.gold_ore;
+  document.getElementById("ore-diamond").innerText = player.ores.diamond_ore;
+
+  document.getElementById("blockType").innerText =
+    BLOCK_NAMES[player.currentBlock.type];
+
+  document.getElementById("blockHp").innerText =
+    `${player.currentBlock.hp} / ${player.currentBlock.maxHp}`;
+
+  document.getElementById("hpFill").style.width =
+    (player.currentBlock.hp / player.currentBlock.maxHp) * 100 + "%";
+
+  document.getElementById("smeltXp").innerText = player.smeltXp || 0;
+
+  const chance = Math.min(
+    0.5 + ((player.smeltXp || 0) / 1000) * 0.3,
+    0.8
+  );
+  document.getElementById("smeltChance").innerText =
+    Math.floor(chance * 100) + "%";
+
+  renderCraft(player);
+  renderPickaxes(player);
+}
+
+function renderCraft(player) {
+  const box = document.getElementById("craft-pickaxes");
+  box.innerHTML = "";
+
+  PICKAXE_CRAFTS.forEach(c => {
+    const have = player.ingots[c.type] || 0;
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <b>${c.name}</b><br>
+      Нужно: ${c.cost}<br>
+      Шанс: ${Math.floor(c.chance * 100)}%<br>
+      У вас: ${have}<br>
+      <button ${have < c.cost ? "disabled" : ""} onclick="craftPickaxe('${c.type}')">
+        Крафт
+      </button>
+    `;
+    box.appendChild(div);
+  });
+}
+
+function renderPickaxes(player) {
+  const box = document.getElementById("my-pickaxes");
+  box.innerHTML = "";
+
+  if (!player.pickaxes?.length) {
+    box.innerText = "Кирок нет";
+    return;
+  }
+
+  player.pickaxes.forEach(p => {
+    const eq = player.equippedPickaxeId === p.id;
+    const div = document.createElement("item");
+    div.className = "item";
+    div.innerHTML = `
+      <b>${p.type.toUpperCase()} кирка</b><br>
+      ⛏️ +${p.stats.power}<br>
+      ⚡ +${p.stats.energy || 0}<br>
+      <button onclick="equipPickaxe('${p.id}')">
+        ${eq ? "Снять" : "Экипировать"}
+      </button>
+    `;
+    box.appendChild(div);
+  });
+}
+
+loadPlayer();
+  
 </script>
 
 </body>
