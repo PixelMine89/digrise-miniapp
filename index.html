@@ -112,7 +112,7 @@ button:disabled {
 /* ===== FURNACE ===== */
 
 .furnace-core {
-  height: 140px;
+  height: 200px;
   border-radius: 16px;
   background: radial-gradient(circle, #ffae42, #5a2a00);
   margin-bottom: 12px;
@@ -276,17 +276,17 @@ button:disabled {
   <div>💎 Алмазы: <span id="ingot-diamond"></span></div>
   </div>
 
-  <div class="furnace-core"></div>
+  <div class="furnace-core">
+    <button onclick="smelt('copper')">Медный слиток<br>(1 медная руда, 2 угля)</button><br><br>
+    <button onclick="smelt('iron')">Железный слиток<br>(1 железная руда, 2 угля</button><br><br>
+    <button onclick="smelt('gold')">Золотой слиток<br>(1 золотая руда, 2 угля</button><br><br>
+    <button onclick="smelt('diamond')">Алмаз<br>(1 алмазная руда, 2 угля</button>
+  </div>
 
   <div class="box">
     <div>🔥 Опыт: <span id="smeltXp"></span></div>
     <div>🎯 Шанс: <span id="smeltChance"></span></div>
   </div>
-
-  <button onclick="smelt('copper')">Медь</button><br><br>
-  <button onclick="smelt('iron')">Железо</button><br><br>
-  <button onclick="smelt('gold')">Золото</button><br><br>
-  <button onclick="smelt('diamond')">Алмаз</button>
 
   <div id="smeltResult"></div>
 </div>
