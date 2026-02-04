@@ -112,7 +112,7 @@ button:disabled {
 /* ===== FURNACE ===== */
 .resources {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   font-size: 13px;
   margin-bottom: 12px;
@@ -749,10 +749,10 @@ function renderPlayer(player) {
   document.getElementById("ore-diamond").innerText = player.ores.diamond_ore;
 
   // Слитки (печь + вывод)
-  document.getElementById("ingot-copper").innerText = player.ingots.copper || 0;
-  document.getElementById("ingot-iron").innerText = player.ingots.iron || 0;
-  document.getElementById("ingot-gold").innerText = player.ingots.gold || 0;
-  document.getElementById("ingot-diamond").innerText = player.ingots.diamond || 0;
+  document.getElementById("ingot-copper").innerText = player.ingots.copper;
+  document.getElementById("ingot-iron").innerText = player.ingots.iron;
+  document.getElementById("ingot-gold").innerText = player.ingots.gold;
+  document.getElementById("ingot-diamond").innerText = player.ingots.diamond;
 
   // Блок
   document.getElementById("blockType").innerText =
