@@ -334,9 +334,13 @@ function showTab(tab) {
     btn.classList.remove("active")
   );
 
-  document
-    .querySelector(`.nav-btn[onclick="showTab('${tab}')"]`)
-    .classList.add("active");
+  const navBtn = document.querySelector(
+  `.nav-btn[onclick="showTab('${tab}')"]`
+);
+
+if (navBtn) {
+  navBtn.classList.add("active");
+}
 
   const titles = {
     mine: "Шахта",
@@ -463,7 +467,12 @@ async function loadHuntState() {
     return;
   }
 
-  renderHunt(data);
+  if (!data.blocks || !Array.isArray(data.blocks)) {
+  console.warn("Hunt blocks not ready yet");
+  return;
+}
+
+renderHunt(data);
 
   if (!huntStateInterval) {
     huntStateInterval = setInterval(loadHuntState, 1000);
@@ -615,8 +624,9 @@ function renderHuntBlocks(blocks) {
   const grid = document.getElementById("hunt-grid");
   grid.innerHTML = "";
 
-  huntSelectedIndex = null;
+  if (huntSelectedIndex === null) {
   document.getElementById("hunt-mine-btn").disabled = true;
+  }
 
   blocks.forEach((b, i) => {
     const div = document.createElement("div");
