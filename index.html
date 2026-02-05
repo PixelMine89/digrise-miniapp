@@ -496,8 +496,8 @@ function renderPickaxes(player) {
     div.className = "item";
     div.innerHTML = `
       <b>${p.type.toUpperCase()} кирка</b><br>
-      ⛏️ +${p.stats.power}<br>
-      ⚡ +${p.stats.energy || 0}<br>
+      ⛏️ Сила: +${p.stats.power}<br>
+      ⚡ Крит: +${p.stats.critChance}<br>
       <button onclick="equipPickaxe('${p.id}')">
         ${eq ? "Снять" : "Экипировать"}
       </button>
