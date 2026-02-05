@@ -195,6 +195,30 @@ button:disabled {
   <button class="mineBtn" id="mineBtn">⛏️ Копать</button>
   </div>
   <div id="reward" style="margin-top:10px;"></div>
+  <div style="margin-top:12px; text-align:center;">
+  <button onclick="startHunt()">🎯 Охота за $DigCoin</button>
+  </div>
+  
+</div>
+
+<!-- ===== HUNT ===== -->
+<div id="tab-hunt" class="tab">
+
+  <div class="box">
+    <div>⏳ Осталось: <span id="hunt-timer">--:--</span></div>
+    <div>💰 Заработано: <span id="hunt-earned">0</span> $DigCoin</div>
+  </div>
+
+  <div class="box">
+    <div id="hunt-grid" style="
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    "></div>
+  </div>
+
+  <button id="hunt-mine-btn" disabled>⛏️ Копать</button>
+
 </div>
 
 <!-- ===== FURNACE ===== -->
@@ -296,6 +320,11 @@ const PICKAXE_CRAFTS = [
 
 /* ================== NAV ================== */
 function showTab(tab) {
+  if (tab !== "hunt" && huntStateInterval) {
+  clearInterval(huntStateInterval);
+  huntStateInterval = null;
+  }
+  
   ["mine", "furnace", "equip", "withdraw"].forEach(t => {
     document.getElementById(`tab-${t}`).style.display =
       t === tab ? "block" : "none";
@@ -411,6 +440,48 @@ async function equipPickaxe(id) {
   loadPlayer();
 }
 
+async function startHunt() {
+  const res = await fetch(`${API_URL}/hunt/start?user_id=${currentUserId}`);
+  const data = await res.json();
+
+  if (data.error) {
+    alert("Сегодня уже играли");
+    return;
+  }
+
+  showTab("hunt");
+  loadHuntState();
+}
+
+async function loadHuntState() {
+  const res = await fetch(`${API_URL}/hunt/state?user_id=${currentUserId}`);
+  const data = await res.json();
+
+  if (!data.active) {
+    showTab("mine");
+    return;
+  }
+
+  renderHunt(data);
+
+  if (!huntStateInterval) {
+    huntStateInterval = setInterval(loadHuntState, 1000);
+  }
+}
+
+document.getElementById("hunt-mine-btn").onclick = async () => {
+  if (huntSelectedIndex === null) return;
+
+  const res = await fetch(
+    `${API_URL}/hunt/mine?user_id=${currentUserId}&index=${huntSelectedIndex}`
+  );
+  const data = await res.json();
+
+  if (!data.success) return;
+
+  loadHuntState();
+};
+
 /* ================== RENDER ================== */
 function renderPlayer(player) {
   document.getElementById("status").style.display = "none";
@@ -506,6 +577,76 @@ function renderPickaxes(player) {
   });
 }
 
+function renderHunt(hunt) {
+  document.getElementById("hunt-earned").innerText = hunt.earned;
+
+  renderHuntTimer(hunt.endsAt);
+  renderHuntBlocks(hunt.blocks);
+}
+
+function renderHuntTimer(endsAt) {
+  if (huntTimerInterval) clearInterval(huntTimerInterval);
+
+  function tick() {
+    const left = endsAt - Date.now();
+
+    if (left <= 0) {
+      clearInterval(huntTimerInterval);
+      clearInterval(huntStateInterval);
+      huntStateInterval = null;
+      alert("Охота окончена!");
+      showTab("mine");
+      loadPlayer();
+      return;
+    }
+
+    const min = Math.floor(left / 60000);
+    const sec = Math.floor((left % 60000) / 1000);
+    document.getElementById("hunt-timer").innerText =
+      `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+
+  tick();
+  huntTimerInterval = setInterval(tick, 1000);
+}
+
+function renderHuntBlocks(blocks) {
+  const grid = document.getElementById("hunt-grid");
+  grid.innerHTML = "";
+
+  huntSelectedIndex = null;
+  document.getElementById("hunt-mine-btn").disabled = true;
+
+  blocks.forEach((b, i) => {
+    const div = document.createElement("div");
+    div.className = "block";
+    div.style.cursor = "pointer";
+    div.innerHTML = `
+      <div>${BLOCK_NAMES[b.type]}</div>
+      <div class="hp-bar">
+        <div class="hp-fill" style="width:${(b.hp / b.maxHp) * 100}%"></div>
+      </div>
+      <div>${b.hp} / ${b.maxHp}</div>
+    `;
+
+    div.onclick = () => {
+      huntSelectedIndex = i;
+      document.getElementById("hunt-mine-btn").disabled = false;
+
+      document.querySelectorAll("#hunt-grid .block").forEach(el =>
+        el.style.outline = "none"
+      );
+      div.style.outline = "2px solid var(--accent)";
+    };
+
+    grid.appendChild(div);
+  });
+}
+
+let huntSelectedIndex = null;
+let huntTimerInterval = null;
+let huntStateInterval = null;
+  
 loadPlayer();
 
 </script>
