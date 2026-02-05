@@ -400,15 +400,11 @@ async function loadPlayer() {
       "Ошибка Telegram ID";
     return;
   }
-
-  alert("2");
   
   currentUserId = tg.initDataUnsafe.user.id;
 
   const res = await fetch(`${API_URL}/getUser?user_id=${currentUserId}`);
   const player = await res.json();
-
-  alert("3");
   
   renderPlayer(player);
   checkHuntOnLoad();
@@ -760,8 +756,6 @@ function renderHuntBlocks(blocks) {
     }
   });
 }
-
-alert("1");
 loadPlayer();
 
 </script>
