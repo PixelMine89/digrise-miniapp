@@ -387,6 +387,7 @@ async function loadPlayer() {
   const res = await fetch(`${API_URL}/getUser?user_id=${currentUserId}`);
   const player = await res.json();
   renderPlayer(player);
+  checkHuntOnLoad();
 
   // 🔥 ВАЖНО: сразу открываем шахту
   showTab("mine");
@@ -518,6 +519,23 @@ renderHunt(data);
   }
 }
 
+async function checkHuntOnLoad() {
+  const res = await fetch(
+    `${API_URL}/hunt/state?user_id=${currentUserId}`
+  );
+
+  const data = await res.json();
+
+  currentHuntActive = data.active;
+
+  const huntBtn = document.getElementById("huntBtn");
+  if (huntBtn) {
+    huntBtn.innerText = data.active
+      ? "🎯 Продолжить охоту"
+      : "🎯 Охота за $DigCoin";
+  }
+}
+
 document.getElementById("hunt-mine-btn").onclick = async () => {
   if (huntSelectedIndex === null) return;
 
@@ -639,6 +657,8 @@ function renderHunt(hunt) {
 }
 
 function renderHuntTimer(endsAt) {
+  endsAt = Number(endsAt);
+  
   if (huntTimerInterval) clearInterval(huntTimerInterval);
 
   function tick() {
