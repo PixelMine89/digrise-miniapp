@@ -330,6 +330,15 @@ const PICKAXE_CRAFTS = [
   { type: "diamond", name: "Алмазная кирка", cost: 25, chance: 0.2 }
 ];
 
+const BLOCK_COLORS = {
+  stone: "#555",
+  coal: "#222",
+  copper: "#b87333",
+  iron: "#aaa",
+  gold: "#f5c77a",
+  diamond: "#4fdcff"
+};
+
 /* ================== NAV ================== */
 function showTab(tab) {
   if (tab !== "hunt" && huntStateInterval) {
@@ -551,6 +560,9 @@ function renderPlayer(player) {
   document.getElementById("blockType").innerText =
     BLOCK_NAMES[player.currentBlock.type];
 
+  document.getElementById("blockVisual").style.background =
+  BLOCK_COLORS[player.currentBlock.type] || "#444";
+
   document.getElementById("blockHp").innerText =
     `${player.currentBlock.hp} / ${player.currentBlock.maxHp}`;
 
@@ -663,6 +675,8 @@ function renderHuntBlocks(blocks) {
   blocks.forEach((b, i) => {
     const div = document.createElement("div");
     div.className = "block hunt-block";
+    div.style.background =
+  BLOCK_COLORS[b.type] || "#444";
     div.style.cursor = "pointer";
     div.innerHTML = `
       <div>${BLOCK_NAMES[b.type]}</div>
