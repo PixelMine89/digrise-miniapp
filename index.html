@@ -492,7 +492,7 @@ async function startHunt() {
   const data = await res.json();
 
   if (data.error) {
-    alert("Сегодня уже играли");
+    alert("Вы уже играли недавно! Попробуйте через 24 часа после прошлой игры.");
     return;
   }
 
