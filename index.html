@@ -815,7 +815,8 @@ function renderHunt(hunt) {
   renderHuntTimer(hunt.endsAt);
   renderHuntBlocks(hunt.blocks);
 
-  localUser = hunt;
+  localUser.energy = hunt.energy;
+  localUser.maxEnergy = hunt.maxEnergy;
 }
 
 function renderHuntTimer(endsAt) {
