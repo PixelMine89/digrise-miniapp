@@ -177,7 +177,9 @@ button:disabled {
 </head>
 <body>
 <div class="header" id="tabTitle">Шахта</div>
-
+  
+<div id="ton-connect"></div>
+  
 <div id="status" class="box">Загрузка...</div>
 
 <div id="player" style="display:none">
@@ -348,7 +350,8 @@ tg.ready();
 const API_URL = "https://digrise.ru";
 
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-  manifestUrl: "https://digrise-miniapp.vercel.app/manifest.json"
+  manifestUrl: "https://digrise-miniapp.vercel.app/manifest.json",
+  buttonRootId: "ton-connect"
 });
   
 let currentUserId = null;
@@ -861,6 +864,10 @@ function renderHuntBlocks(blocks) {
 
 async function buyPickaxeTON(type) {
 
+  if (!tonConnectUI.connected) {
+    await tonConnectUI.connectWallet();
+  }
+  
   const pricesNano = {
     copper: "500000000",
     iron: "2000000000",
