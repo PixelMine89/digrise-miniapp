@@ -19,6 +19,17 @@
   --success: #4cd964;
 }
 
+/* ===== DISABLE SELECTION ===== */
+
+html, body, * {
+  -webkit-user-select: none; /* iOS */
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* убирает меню копирования на iOS */
+  -webkit-tap-highlight-color: transparent;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -101,6 +112,12 @@ button {
   padding: 12px;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 0.08s ease, filter 0.08s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+  filter: brightness(0.85);
 }
 
 button:disabled {
