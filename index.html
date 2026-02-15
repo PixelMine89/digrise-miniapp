@@ -750,23 +750,20 @@ async function checkHuntOnLoad() {
 
 document.getElementById("hunt-mine-btn").onclick = async () => {
   if (huntSelectedIndex === null) return;
-  if (huntMineInProgress) return;
 
-  huntMineInProgress = true;
-  document.getElementById("hunt-mine-btn").disabled = true;
+  const res = await fetch(
+    `${API_URL}/hunt/mine?user_id=${currentUserId}&index=${huntSelectedIndex}`
+  );
 
-  try {
-    const res = await fetch(
-      `${API_URL}/hunt/mine?user_id=${currentUserId}&index=${huntSelectedIndex}`
-    );
-    const data = await res.json();
+  const data = await res.json();
 
-    if (data.success) {
-      await loadHuntState();
-    }
-  } finally {
-    huntMineInProgress = false;
-    document.getElementById("hunt-mine-btn").disabled = false;
+  if (data.error === "NO_ENERGY") {
+    alert("Нет энергии");
+    return;
+  }
+
+  if (data.success) {
+    await loadHuntState();
   }
 };
 
