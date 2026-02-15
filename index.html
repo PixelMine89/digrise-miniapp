@@ -564,7 +564,7 @@ async function loadPlayer() {
   renderPlayer(player);
   checkHuntOnLoad();
 
-  playerInterval = setInterval(loadPlayerDataOnly, 1000);
+  playerInterval = setInterval(loadPlayerDataOnly, 500);
 
   // 🔥 ВАЖНО: сразу открываем шахту
   showTab("mine");
