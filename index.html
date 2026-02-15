@@ -307,200 +307,173 @@ button:disabled {
 </div>
 
 <div id="player" style="display:none">
-
-<!-- ===== TOP PANEL ===== -->
-<div class="top-wrapper">
-  <div class="top-panel">
-
-    <div class="top-left">
-      <img src="https://i.pravatar.cc/100" class="avatar" id="playerAvatar">
-      <div class="player-info">
-        <div class="player-name" id="playerName">Игрок</div>
-        <div class="player-id" id="playerId">ID: 0</div>
+  <!-- ===== TOP PANEL ===== -->
+  <div class="top-wrapper">
+    <div class="top-panel">
+      <div class="top-left">
+        <img src="https://i.pravatar.cc/100" class="avatar" id="playerAvatar">
+        <div class="player-info">
+          <div class="player-name" id="playerName">Игрок</div>
+          <div class="player-id" id="playerId">ID: 0</div>
+        </div>
+      </div>
+      <div id="ton-connect"></div>
+    </div>
+  </div>
+  <!-- ===== MINE ===== -->
+  <div id="tab-mine" class="tab">
+    <div class="mine-shaft">
+      <div class="block" id="blockVisual">
+        <div id="blockType"></div>
+        <div class="hp-bar">
+          <div class="hp-fill" id="hpFill"></div>
+        </div>
+        <div id="blockHp"></div>
       </div>
     </div>
-
-    <div id="ton-connect"></div>
-
+    <div class="box">
+      <div>⚡ Энергия: <span id="energy"></span></div>
+      <div>⬇️ Глубина: <span id="depth"></span></div>
+    </div>
+    <div style="text-align: center;">
+      <button class="mineBtn" id="mineBtn">⛏️ Копать</button>
+    </div>
+    <div id="reward" style="margin-top:10px;"></div>
+    <div style="margin-top:12px; text-align:center;">
+      <button id="huntBtn" onclick="onHuntButton()">🎯 Охота за $DigCoin</button>
+    </div>
   </div>
-</div>
+  <!-- ===== HUNT ===== -->
+  <div id="tab-hunt" class="tab">
+    <div class="box">
+      <div>⏳ Осталось: <span id="hunt-timer">--:--</span></div>
+      <div>💰 Заработано: <span id="hunt-earned">0</span> $DigCoin</div>
+      <div>⚡ Энергия: <span id="hunt-energy"></span></div>
+    </div>
+    <div class="box">
+      <div id="hunt-grid" style="
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      "></div>
+    </div>
+    <button id="hunt-mine-btn" disabled>⛏️ Копать</button>
+  </div>
+  <!-- ===== FURNACE ===== -->
+  <div id="tab-furnace" class="tab">
+    <div class="box">
+      <div>🪨 Уголь: <span id="ore-coal"></span></div>
+      <div>🟤 Медная руда: <span id="ore-copper"></span></div>
+      <div>⚙️ Железная руда: <span id="ore-iron"></span></div>
+      <div>🟡 Золотая руда: <span id="ore-gold"></span></div>
+      <div>💎 Алмазная руда: <span id="ore-diamond"></span></div>
+    </div>
+    <div class="box">
+      <div>🟤 Медные слитки: <span id="ingot-copper"></span></div>
+      <div>⚙️ Железные слитки: <span id="ingot-iron"></span></div>
+      <div>🟡 Золотые слитки: <span id="ingot-gold"></span></div>
+      <div>💎 Алмазы: <span id="ingot-diamond"></span></div>
+    </div>
+    <div class="furnace-core">
+      <button class="furnace-core-button" onclick="smelt('copper')">
+        Медный слиток<br>(1 медная руда, 2 угля)</button>
+      <button class="furnace-core-button" onclick="smelt('iron')">
+        Железный слиток<br>(1 железная руда, 2 угля)</button>
+      <button class="furnace-core-button" onclick="smelt('gold')">
+        Золотой слиток<br>(1 золотая руда, 2 угля)</button>
+      <button class="furnace-core-button" onclick="smelt('diamond')">
+        Алмаз<br>(1 алмазная руда, 2 угля)</button>
+    </div>
+    <div id="smeltResult"></div>
+    <div class="box">
+      <div>🔥 Опыт: <span id="smeltXp"></span></div>
+      <div>🎯 Шанс: <span id="smeltChance"></span></div>
+    </div>
+  </div>
 
-<!-- ===== MINE ===== -->
-<div id="tab-mine" class="tab">
-  <div class="mine-shaft">
-    <div class="block" id="blockVisual">
-      <div id="blockType"></div>
-      <div class="hp-bar">
-        <div class="hp-fill" id="hpFill"></div>
+  <!-- ===== EQUIP ===== -->
+  <div id="tab-equip" class="tab">
+    <div class="box">
+      <h3>Крафт кирок</h3>
+      <div id="craft-pickaxes"></div>
+    </div>
+    <div class="box">
+      <h3>Мои кирки</h3>
+      <div id="my-pickaxes"></div>
+    </div>
+  </div>
+
+  <!-- ===== WITHDRAW ===== -->
+  <div id="tab-withdraw" class="tab">
+    <div class="box">
+      <h3>💰 Вывод</h3>
+      <p class="label">Сезон будет завершен 30.03.2026</p>
+      <p>В конце сезона с 30.03.2026 по 01.04.2026 вы сможете обменять $DigCoin
+      на телеграм звёзды.<br>Курс обмена рассчитывается по формуле: 50% суммы 
+      всех донатов / общее количество заработанных $DigCoin.<br>Вывод будет 
+      возможен при достижении баланса в 50 звёзд.</p>
+    </div>
+    <div class="box">
+      <div>$DigCoin: <span id="dig-coin"></span></div>
+    </div>
+  </div>
+  <div id="huntResultModal" style="
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  ">
+    <div class="box" style="max-width:300px; text-align:center;">
+      <h3>🎯 Охота завершена</h3>
+      <div style="margin:12px 0;">
+        Заработано:<br>
+        <b><span id="huntResultEarned">0</span> $DigCoin</b>
       </div>
-      <div id="blockHp"></div>
+      <button onclick="closeHuntResult()">Закрыть</button>
     </div>
   </div>
-
-  <div class="box">
-    <div>⚡ Энергия: <span id="energy"></span></div>
-    <div>⬇️ Глубина: <span id="depth"></span></div>
-  </div>
-
-  <div style="text-align: center;">
-  <button class="mineBtn" id="mineBtn">⛏️ Копать</button>
-  </div>
-  <div id="reward" style="margin-top:10px;"></div>
-  <div style="margin-top:12px; text-align:center;">
-    <button id="huntBtn" onclick="onHuntButton()">🎯 Охота за $DigCoin</button>
-  </div>
-</div>
-
-<!-- ===== HUNT ===== -->
-<div id="tab-hunt" class="tab">
-
-  <div class="box">
-    <div>⏳ Осталось: <span id="hunt-timer">--:--</span></div>
-    <div>💰 Заработано: <span id="hunt-earned">0</span> $DigCoin</div>
-    <div>⚡ Энергия: <span id="hunt-energy"></span></div>
-  </div>
-
-  <div class="box">
-    <div id="hunt-grid" style="
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    "></div>
-  </div>
-
-  <button id="hunt-mine-btn" disabled>⛏️ Копать</button>
-
-</div>
-
-<!-- ===== FURNACE ===== -->
-<div id="tab-furnace" class="tab">
-  <div class="box">
-    <div>🪨 Уголь: <span id="ore-coal"></span></div>
-    <div>🟤 Медная руда: <span id="ore-copper"></span></div>
-    <div>⚙️ Железная руда: <span id="ore-iron"></span></div>
-    <div>🟡 Золотая руда: <span id="ore-gold"></span></div>
-    <div>💎 Алмазная руда: <span id="ore-diamond"></span></div>
-  </div>
-
-  <div class="box">
-  <div>🟤 Медные слитки: <span id="ingot-copper"></span></div>
-  <div>⚙️ Железные слитки: <span id="ingot-iron"></span></div>
-  <div>🟡 Золотые слитки: <span id="ingot-gold"></span></div>
-  <div>💎 Алмазы: <span id="ingot-diamond"></span></div>
-  </div>
-
-  <div class="furnace-core">
-    <button class="furnace-core-button" onclick="smelt('copper')">
-      Медный слиток<br>(1 медная руда, 2 угля)</button>
-    <button class="furnace-core-button" onclick="smelt('iron')">
-      Железный слиток<br>(1 железная руда, 2 угля)</button>
-    <button class="furnace-core-button" onclick="smelt('gold')">
-      Золотой слиток<br>(1 золотая руда, 2 угля)</button>
-    <button class="furnace-core-button" onclick="smelt('diamond')">
-      Алмаз<br>(1 алмазная руда, 2 угля)</button>
-  </div>
-
-  <div id="smeltResult"></div>
-  
-  <div class="box">
-    <div>🔥 Опыт: <span id="smeltXp"></span></div>
-    <div>🎯 Шанс: <span id="smeltChance"></span></div>
-  </div>
-</div>
-
-<!-- ===== EQUIP ===== -->
-<div id="tab-equip" class="tab">
-  <div class="box">
-    <h3>Крафт кирок</h3>
-    <div id="craft-pickaxes"></div>
-  </div>
-
-  <div class="box">
-    <h3>Мои кирки</h3>
-    <div id="my-pickaxes"></div>
-  </div>
-</div>
-
-<!-- ===== WITHDRAW ===== -->
-<div id="tab-withdraw" class="tab">
-  <div class="box">
-    <h3>💰 Вывод</h3>
-    <p class="label">Сезон будет завершен 30.03.2026</p>
-    <p>В конце сезона с 30.03.2026 по 01.04.2026 вы сможете обменять $DigCoin
-    на телеграм звёзды.<br>Курс обмена рассчитывается по формуле: 50% суммы 
-    всех донатов / общее количество заработанных $DigCoin.<br>Вывод будет 
-    возможен при достижении баланса в 50 звёзд.</p>
-  </div>
-      <div class="box">
-  <div>$DigCoin: <span id="dig-coin"></span></div>
+  <div id="huntCooldownModal" style="
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  ">
+    <div class="box" style="max-width:300px; text-align:center;">
+      <h3>⏳ Охота недоступна</h3>
+      <div style="margin:12px 0;">
+        Следующая охота через:<br>
+        <b><span id="huntCooldownTime">--:--</span></b>
       </div>
-</div>
-
-</div>
-
-<div id="huntResultModal" style="
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-">
-  <div class="box" style="max-width:300px; text-align:center;">
-    <h3>🎯 Охота завершена</h3>
-    <div style="margin:12px 0;">
-      Заработано:<br>
-      <b><span id="huntResultEarned">0</span> $DigCoin</b>
+      <button onclick="closeHuntCooldown()">Закрыть</button>
     </div>
-    <button onclick="closeHuntResult()">Закрыть</button>
   </div>
-</div>
-
-<div id="huntCooldownModal" style="
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-">
-  <div class="box" style="max-width:300px; text-align:center;">
-    <h3>⏳ Охота недоступна</h3>
-    <div style="margin:12px 0;">
-      Следующая охота через:<br>
-      <b><span id="huntCooldownTime">--:--</span></b>
-    </div>
-    <button onclick="closeHuntCooldown()">Закрыть</button>
-  </div>
-
   <!-- ===== NAV ===== -->
-<div class="nav-wrapper">
-  <div class="nav">
-
-    <div class="nav-btn active" onclick="showTab('mine')">
-      <img src="icon-home.png">
-      <div>Шахта</div>
+  <div class="nav-wrapper">
+    <div class="nav">
+      <div class="nav-btn active" onclick="showTab('mine')">
+        <img src="icon-home.png">
+        <div>Шахта</div>
+      </div>
+      <div class="nav-btn" onclick="showTab('furnace')">
+        <img src="icon-furnace.png">
+        <div>Печь</div>
+      </div>
+      <div class="nav-btn" onclick="showTab('equip')">
+        <img src="icon-equip.png">
+        <div>Экип</div>
+      </div>
+      <div class="nav-btn" onclick="showTab('withdraw')">
+        <img src="icon-withdraw.png">
+        <div>Вывод</div>
+      </div>
     </div>
-
-    <div class="nav-btn" onclick="showTab('furnace')">
-      <img src="icon-furnace.png">
-      <div>Печь</div>
-    </div>
-
-    <div class="nav-btn" onclick="showTab('equip')">
-      <img src="icon-equip.png">
-      <div>Экип</div>
-    </div>
-
-    <div class="nav-btn" onclick="showTab('withdraw')">
-      <img src="icon-withdraw.png">
-      <div>Вывод</div>
-    </div>
-
   </div>
-</div>
 </div>
   
 <script>
