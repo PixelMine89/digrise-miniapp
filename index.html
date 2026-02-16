@@ -468,6 +468,51 @@ button:disabled {
       <div>$DigCoin: <span id="dig-coin"></span></div>
     </div>
   </div>
+  <!-- ===== TASKS ===== -->
+  <div id="tab-tasks" class="tab">
+    <div class="box" style="text-align:center;">
+      <h3>📜 Задания</h3>
+    </div>
+    <!-- TELEGRAM TASK -->
+    <div class="box">
+      <b>📢 Вступить в Telegram канал</b>
+      <p class="label">
+        Вступите в наш канал и получите 50 DigCoin
+      </p>
+      <button onclick="joinChannel()">Перейти в канал</button>
+      <button id="checkChannelBtn" onclick="checkChannelTask()">
+        Проверить выполнение
+      </button>
+    </div>
+    <!-- REFERRAL TASK -->
+    <div class="box">
+      <b>👥 Приглашай друзей</b>
+      <p class="label">
+        За каждого друга, который вступил в канал — 100 DigCoin
+      </p>
+      <div style="font-size:12px; margin:8px 0;">
+        Ваша ссылка:
+        <div id="refLink" style="
+          word-break: break-all;
+          font-size:11px;
+          color: var(--accent);
+          margin-top:4px;">
+        </div>
+      </div>
+      <button onclick="copyRef()">Скопировать ссылку</button>
+      <div style="margin-top:12px;">
+        <b>Приглашенные друзья:</b>
+        <div id="refFriends" style="
+          max-height:120px;
+          overflow-y:auto;
+          font-size:12px;
+          margin-top:6px;
+          color: var(--muted);
+        ">
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="huntResultModal" style="
     position: fixed;
     inset: 0;
@@ -567,6 +612,10 @@ button:disabled {
         <img src="icon-withdraw.png">
         <div>Вывод</div>
       </div>
+      <div class="nav-btn" onclick="showTab('tasks')">
+        <img src="icon-tasks.png">
+        <div>Задания</div>
+      </div>
     </div>
   </div>
 </div>
@@ -624,7 +673,7 @@ function showTab(tab) {
   huntStateInterval = null;
   }
   
-  ["mine", "furnace", "equip", "withdraw", "hunt"].forEach(t => {
+  ["mine", "furnace", "equip", "withdraw", "hunt", "tasks"].forEach(t => {
     document.getElementById(`tab-${t}`).style.display =
       t === tab ? "block" : "none";
   });
