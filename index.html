@@ -306,6 +306,40 @@ button:disabled {
   0%,100% { transform: scale(1); }
   50% { transform: scale(0.96); }
 }
+
+    /* ===== MINE INFO BUTTON ===== */
+
+.mine-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mine-stats-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(245,199,122,0.15);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.info-btn:active {
+  transform: scale(0.9);
+  background: rgba(245,199,122,0.3);
+}
   </style>
 </head>
 <body>
@@ -343,9 +377,12 @@ button:disabled {
         <div id="blockHp"></div>
       </div>
     </div>
-    <div class="box">
-      <div>⚡ Энергия: <span id="energy"></span></div>
-      <div>⬇️ Глубина: <span id="depth"></span></div>
+    <div class="box mine-stats">
+      <div class="mine-stats-left">
+        <div>⚡ Энергия: <span id="energy"></span></div>
+        <div>⬇️ Глубина: <span id="depth"></span></div>
+      </div>
+      <div class="info-btn" onclick="openMineInfo()">i</div>
     </div>
     <div style="text-align: center;">
       <button class="mineBtn" id="mineBtn">⛏️ Копать</button>
@@ -463,6 +500,41 @@ button:disabled {
         <b><span id="huntCooldownTime">--:--</span></b>
       </div>
       <button onclick="closeHuntCooldown()">Закрыть</button>
+    </div>
+  </div>
+  <div id="mineInfoModal" style="
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  ">
+    <div class="box" style="
+      max-width: 340px;
+      width: 90%;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+    ">
+      <h3 style="text-align:center;">ℹ️ Информация</h3>
+      <div style="
+        overflow-y: auto;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 12px 0;
+        line-height: 1.5;
+      ">
+        Здесь будет информация о шансах выпадения блоков,
+        влиянии глубины, механике энергии,
+        формуле расчёта бонусов и других деталях.
+
+        <br><br>
+        Текст можно делать очень длинным —
+        здесь включена прокрутка.
+      </div>
+      <button onclick="closeMineInfo()">Закрыть</button>
     </div>
   </div>
   <!-- ===== NAV ===== -->
@@ -812,6 +884,14 @@ function closeHuntCooldown() {
     huntCooldownInterval = null;
   }
   document.getElementById("huntCooldownModal").style.display = "none";
+}
+
+function openMineInfo() {
+  document.getElementById("mineInfoModal").style.display = "flex";
+}
+
+function closeMineInfo() {
+  document.getElementById("mineInfoModal").style.display = "none";
 }
 
 /* ================== RENDER ================== */
