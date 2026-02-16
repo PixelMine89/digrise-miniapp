@@ -690,6 +690,10 @@ if (navBtn) {
   navBtn.classList.add("active");
 }
 
+if (tab === "tasks") {
+  loadTasks();
+}
+
 }
 
 /* ================== LOAD PLAYER ================== */
@@ -952,6 +956,56 @@ function openMineInfo() {
 
 function closeMineInfo() {
   document.getElementById("mineInfoModal").style.display = "none";
+}
+
+/* ================= TASKS ================= */
+
+async function loadTasks() {
+  const res = await fetch(`${API_URL}/tasks?user_id=${currentUserId}`);
+  const data = await res.json();
+
+  document.getElementById("refLink").innerText = data.refLink;
+
+  const friendsBox = document.getElementById("refFriends");
+  friendsBox.innerHTML = "";
+
+  if (!data.friends.length) {
+    friendsBox.innerText = "Пока никого нет";
+    return;
+  }
+
+  data.friends.forEach(f => {
+    const div = document.createElement("div");
+    div.innerText = "• " + f;
+    friendsBox.appendChild(div);
+  });
+}
+
+function joinChannel() {
+  window.open("https://t.me/digrise_channel", "_blank");
+}
+
+async function checkChannelTask() {
+  const res = await fetch(`${API_URL}/tasks/checkChannel`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ user_id: currentUserId })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("Задание выполнено! +50 DigCoin");
+    loadPlayer();
+  } else {
+    alert("Вы ещё не подписались 😢");
+  }
+}
+
+function copyRef() {
+  const text = document.getElementById("refLink").innerText;
+  navigator.clipboard.writeText(text);
+  alert("Ссылка скопирована!");
 }
 
 /* ================== RENDER ================== */
