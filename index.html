@@ -474,15 +474,32 @@ button:disabled {
       <h3>📜 Задания</h3>
     </div>
     <!-- TELEGRAM TASK -->
-    <div class="box">
+    <div class="box" id="channelTaskBox">
       <b>📢 Вступить в Telegram канал</b>
       <p class="label">
         Вступите в наш канал и получите 50 DigCoin
       </p>
-      <button onclick="joinChannel()">Перейти в канал</button>
-      <button id="checkChannelBtn" onclick="checkChannelTask()">
-        Проверить выполнение
-      </button>
+
+      <div id="channelTaskActions">
+        <button onclick="joinChannel()">Перейти в канал</button>
+        <button id="checkChannelBtn" onclick="checkChannelTask()">
+          Проверить выполнение
+        </button>
+      </div>
+
+      <div id="channelTaskDone" style="
+        display:none;
+        margin-top:10px;
+        padding:10px;
+        background: rgba(0,255,150,0.1);
+        border:1px solid rgba(0,255,150,0.3);
+        border-radius:8px;
+        color:#00ff95;
+        font-weight:bold;
+        text-align:center;
+      ">
+        ✅ Задание выполнено! +50 DigCoin
+      </div>
     </div>
     <!-- REFERRAL TASK -->
     <div class="box">
@@ -976,6 +993,9 @@ async function loadTasks() {
 
   document.getElementById("refLink").innerText = data.refLink;
 
+  // 👉 ВАЖНО: обновляем состояние задания
+  renderChannelTask(data.channelTaskDone);
+
   const friendsBox = document.getElementById("refFriends");
   friendsBox.innerHTML = "";
 
@@ -1005,6 +1025,7 @@ async function checkChannelTask() {
   const data = await res.json();
 
   if (data.success) {
+    renderChannelTask(true); // 🔥 мгновенно меняем UI
     alert("Задание выполнено! +50 DigCoin");
     loadPlayer();
   } else {
@@ -1209,6 +1230,19 @@ function renderHuntBlocks(blocks) {
   div.style.outline = "2px solid var(--accent)";
     }
   });
+}
+
+function renderChannelTask(isDone) {
+  const actions = document.getElementById("channelTaskActions");
+  const doneBlock = document.getElementById("channelTaskDone");
+
+  if (isDone) {
+    actions.style.display = "none";
+    doneBlock.style.display = "block";
+  } else {
+    actions.style.display = "block";
+    doneBlock.style.display = "none";
+  }
 }
 
 async function buyPickaxeTON(type) {
