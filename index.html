@@ -725,19 +725,9 @@ async function loadPlayer() {
   
   currentUserId = tg.initDataUnsafe.user.id;
 
-// 🔥 получаем start_param
-startParam =
-  tg.initDataUnsafe?.start_param ||
-  tg.initDataUnsafe?.startapp ||
-  new URLSearchParams(tg.initData).get("start_param") ||
-  "";
-
-alert("START PARAM FRONT:", startParam);
-
-// 🔥 передаём его на сервер
-const res = await fetch(
-  `${API_URL}/getUser?user_id=${currentUserId}&start_param=${startParam}`
-);
+  const res = await fetch(
+    `${API_URL}/getUser?user_id=${currentUserId}`
+  );
   const player = await res.json();
   
   renderPlayer(player);
@@ -750,15 +740,9 @@ const res = await fetch(
 }
 
 async function loadPlayerDataOnly() {
-  // 🔥 получаем start_param
-startParam =
-  tg.initDataUnsafe?.start_param ||
-  tg.initDataUnsafe?.startapp ||
-  new URLSearchParams(tg.initData).get("start_param") ||
-  "";
   const res = await fetch(
-  `${API_URL}/getUser?user_id=${currentUserId}&start_param=${startParam || ""}`
-);
+    `${API_URL}/getUser?user_id=${currentUserId}`
+  );
   const player = await res.json();
   renderPlayer(player);
 }
