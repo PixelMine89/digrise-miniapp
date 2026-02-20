@@ -408,66 +408,112 @@ button:disabled {
     </div>
     <button id="hunt-mine-btn" disabled>⛏️ Копать</button>
   </div>
-  <!-- ===== FURNACE ===== -->
-  <div id="tab-furnace" class="tab">
-    <div class="box">
-       <h3>Ваша руда</h3>
-      <div>🪨 Уголь: <span id="ore-coal"></span></div>
-      <div>🟤 Медная руда: <span id="ore-copper"></span></div>
-      <div>⚙️ Железная руда: <span id="ore-iron"></span></div>
-      <div>🟡 Золотая руда: <span id="ore-gold"></span></div>
-      <div>💎 Алмазная руда: <span id="ore-diamond"></span></div>
-    </div>
-    <div class="box">
-       <h3>Ваши слитки</h3>
-      <div>🟤 Медные слитки: <span id="ingot-copper"></span></div>
-      <div>⚙️ Железные слитки: <span id="ingot-iron"></span></div>
-      <div>🟡 Золотые слитки: <span id="ingot-gold"></span></div>
-      <div>💎 Алмазы: <span id="ingot-diamond"></span></div>
-    </div>
+  <!-- ===== CRAFT (Печь + Экип) ===== -->
+<div id="tab-craft" class="tab">
+
+  <div class="box">
+    <h3>🪨 Ваша руда</h3>
+    <div>🪨 Уголь: <span id="ore-coal"></span></div>
+    <div>🟤 Медная руда: <span id="ore-copper"></span></div>
+    <div>⚙️ Железная руда: <span id="ore-iron"></span></div>
+    <div>🟡 Золотая руда: <span id="ore-gold"></span></div>
+    <div>💎 Алмазная руда: <span id="ore-diamond"></span></div>
+  </div>
+
+  <div class="box">
+    <h3>🔥 Плавка</h3>
+
+    <div>🟤 Медные слитки: <span id="ingot-copper"></span></div>
+    <div>⚙️ Железные слитки: <span id="ingot-iron"></span></div>
+    <div>🟡 Золотые слитки: <span id="ingot-gold"></span></div>
+    <div>💎 Алмазы: <span id="ingot-diamond"></span></div>
+
     <div class="furnace-core">
       <button class="furnace-core-button" onclick="smelt('copper')">
-        Медный слиток<br>(1 медная руда, 2 угля)</button>
+        Медный слиток<br>(1 медная руда, 2 угля)
+      </button>
       <button class="furnace-core-button" onclick="smelt('iron')">
-        Железный слиток<br>(1 железная руда, 2 угля)</button>
+        Железный слиток<br>(1 железная руда, 2 угля)
+      </button>
       <button class="furnace-core-button" onclick="smelt('gold')">
-        Золотой слиток<br>(1 золотая руда, 2 угля)</button>
+        Золотой слиток<br>(1 золотая руда, 2 угля)
+      </button>
       <button class="furnace-core-button" onclick="smelt('diamond')">
-        Алмаз<br>(1 алмазная руда, 2 угля)</button>
+        Алмаз<br>(1 алмазная руда, 2 угля)
+      </button>
     </div>
+
     <div id="smeltResult"></div>
+
     <div class="box">
       <div>🔥 Опыт: <span id="smeltXp"></span></div>
       <div>🎯 Шанс: <span id="smeltChance"></span></div>
     </div>
   </div>
 
-  <!-- ===== EQUIP ===== -->
-  <div id="tab-equip" class="tab">
-    <div class="box">
-      <h3>Крафт кирок</h3>
-      <div id="craft-pickaxes"></div>
-    </div>
-    <div class="box">
-      <h3>Мои кирки</h3>
-      <div id="my-pickaxes"></div>
-    </div>
+  <div class="box">
+    <h3>⛏️ Крафт кирок</h3>
+    <div id="craft-pickaxes"></div>
   </div>
 
-  <!-- ===== WITHDRAW ===== -->
-  <div id="tab-withdraw" class="tab">
-    <div class="box">
-      <h3>💰 Вывод</h3>
-      <p class="label">Сезон будет завершен 30.03.2026</p>
-      <p>В конце сезона с 30.03.2026 по 01.04.2026 вы сможете обменять $DigCoin
-      на TON.<br>Курс обмена рассчитывается по формуле: 90% суммы 
-      всех донатов / общее количество заработанных $DigCoin.<br>Вывод будет 
-      возможен при достижении баланса в 2 TON.</p>
-    </div>
-    <div class="box">
-      <div>$DigCoin: <span id="dig-coin"></span></div>
+  <div class="box">
+    <h3>🎒 Мои кирки</h3>
+    <div id="my-pickaxes"></div>
+  </div>
+
+</div>
+
+
+<!-- ===== MARKET ===== -->
+<div id="tab-market" class="tab">
+  <div class="box">
+    <h3>🏪 Рынок</h3>
+    <p class="label">
+      Здесь игроки смогут покупать и продавать:
+      ресурсы, слитки, кирки и другие предметы.
+    </p>
+  </div>
+
+  <div class="box">
+    <h4>📦 Создать объявление</h4>
+    <button>Создать лот</button>
+  </div>
+
+  <div class="box">
+    <h4>🛒 Активные предложения</h4>
+    <div id="market-list">
+      Скоро появится рынок...
     </div>
   </div>
+</div>
+
+
+<!-- ===== EXCHANGE (СВАП) ===== -->
+<div id="tab-exchange" class="tab">
+  <div class="box">
+    <h3>🔄 Обмен DigCoin ↔ TON</h3>
+    <p class="label">
+      Комиссия: 5% за каждую операцию
+    </p>
+  </div>
+
+  <div class="box">
+    <div>💰 Ваш баланс:</div>
+    <div>$DigCoin: <span id="dig-coin"></span></div>
+  </div>
+
+  <div class="box">
+    <h4>Купить DigCoin</h4>
+    <input type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <button>Купить</button>
+  </div>
+
+  <div class="box">
+    <h4>Продать DigCoin</h4>
+    <input type="number" placeholder="DigCoin" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <button>Продать</button>
+  </div>
+</div>
   <!-- ===== TASKS ===== -->
   <div id="tab-tasks" class="tab">
     <div class="box" style="text-align:center;">
@@ -618,21 +664,25 @@ button:disabled {
         <img src="icon-home.png">
         <div>Шахта</div>
       </div>
-      <div class="nav-btn" onclick="showTab('furnace')">
+
+      <div class="nav-btn" onclick="showTab('craft')">
         <img src="icon-furnace.png">
-        <div>Печь</div>
+        <div>Крафт</div>
       </div>
-      <div class="nav-btn" onclick="showTab('equip')">
-        <img src="icon-equip.png">
-        <div>Экип</div>
+
+      <div class="nav-btn" onclick="showTab('market')">
+        <img src="icon-market.png">
+        <div>Рынок</div>
       </div>
+
       <div class="nav-btn" onclick="showTab('tasks')">
         <img src="icon-tasks.png">
         <div>Задания</div>
       </div>
-      <div class="nav-btn" onclick="showTab('withdraw')">
-        <img src="icon-withdraw.png">
-        <div>Вывод</div>
+
+      <div class="nav-btn" onclick="showTab('exchange')">
+        <img src="icon-exchange.png">
+        <div>Обмен</div>
       </div>
     </div>
   </div>
@@ -692,7 +742,7 @@ function showTab(tab) {
   huntStateInterval = null;
   }
   
-  ["mine", "furnace", "equip", "withdraw", "hunt", "tasks"].forEach(t => {
+  ["mine", "craft", "market", "exchange", "hunt", "tasks"].forEach(t => {
     document.getElementById(`tab-${t}`).style.display =
       t === tab ? "block" : "none";
   });
