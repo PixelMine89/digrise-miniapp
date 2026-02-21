@@ -490,29 +490,38 @@ button:disabled {
 
 <!-- ===== EXCHANGE (СВАП) ===== -->
 <div id="tab-exchange" class="tab">
+
   <div class="box">
-    <h3>🔄 Обмен DigCoin ↔ TON</h3>
-    <p class="label">
-      Комиссия: 5% за каждую операцию
-    </p>
+    <h3>💳 Баланс</h3>
+    <div>TON: <span id="virtual-ton">0</span></div>
+    <div>DigCoin: <span id="dig-coin"></span></div>
   </div>
 
   <div class="box">
-    <div>💰 Ваш баланс:</div>
-    <div>$DigCoin: <span id="dig-coin"></span></div>
+    <h4>📥 Пополнить TON</h4>
+    <input id="deposit-amount" type="number" placeholder="Сколько TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <button onclick="depositTon()">Пополнить</button>
   </div>
 
   <div class="box">
-    <h4>Купить DigCoin</h4>
-    <input type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
-    <button>Купить</button>
+    <h4>🔄 Купить DigCoin</h4>
+    <input id="swap-ton" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <button onclick="swapTonToDC()">Обменять TON → DigCoin</button>
   </div>
 
   <div class="box">
-    <h4>Продать DigCoin</h4>
-    <input type="number" placeholder="DigCoin" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
-    <button>Продать</button>
+    <h4>🔄 Продать DigCoin</h4>
+    <input id="swap-dc" type="number" placeholder="DigCoin" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <button onclick="swapDCToTon()">Обменять DigCoin → TON</button>
   </div>
+
+  <div class="box">
+    <h4>📤 Вывести TON</h4>
+    <input id="withdraw-amount" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="withdraw-address" type="text" placeholder="Адрес TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <button onclick="withdrawTon()">Заказать вывод</button>
+  </div>
+
 </div>
   <!-- ===== TASKS ===== -->
   <div id="tab-tasks" class="tab">
@@ -1118,9 +1127,13 @@ if (tg.initDataUnsafe?.user?.photo_url) {
   document.getElementById("ingot-gold").innerText = player.ingots.gold;
   document.getElementById("ingot-diamond").innerText = player.ingots.diamond;
 
-  // DigCoin (вывод)
+  // DigCoin
   document.getElementById("dig-coin").innerText =
   player.digCoin;
+  
+  // Virtual Ton
+  document.getElementById("virtual-ton").innerText =
+  player.virtualTon?.toFixed(4);
   
   // Блок
   document.getElementById("blockType").innerText =
@@ -1165,15 +1178,6 @@ function renderCraft(player) {
 
   <button ${have < c.cost ? "disabled" : ""} onclick="craftPickaxe('${c.type}')">
     Крафт
-  </button>
-
-  <button onclick="buyPickaxeTON('${c.type}')">
-    Купить за ${{
-      copper: "0.5",
-      iron: "2",
-      gold: "7",
-      diamond: "20"
-    }[c.type]} TON
   </button>
 `;
     box.appendChild(div);
@@ -1290,22 +1294,25 @@ function renderChannelTask(isDone) {
   }
 }
 
-async function buyPickaxeTON(type) {
+async function depositTon() {
+
+  const amount = parseFloat(
+    document.getElementById("deposit-amount").value
+  );
+
+  if (!amount || amount <= 0) {
+    alert("Введите сумму");
+    return;
+  }
 
   if (!tonConnectUI.connected) {
     await tonConnectUI.connectWallet();
   }
-  
-  const pricesNano = {
-    copper: "500000000",
-    iron: "2000000000",
-    gold: "7000000000",
-    diamond: "20000000000"
-  };
+
+  const amountNano = String(Math.floor(amount * 1_000_000_000));
 
   const payload = {
-    user_id: currentUserId,
-    type
+    user_id: currentUserId
   };
 
   const transaction = {
@@ -1313,30 +1320,130 @@ async function buyPickaxeTON(type) {
     messages: [
       {
         address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn",
-        amount: pricesNano[type]
+        amount: amountNano,
+        payload: btoa(JSON.stringify(payload))
       }
     ]
   };
 
   try {
+
     const result = await tonConnectUI.sendTransaction(transaction);
-    alert("Отправлено");
+
     await fetch(`${API_URL}/ton/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         txHash: result.transactionHash,
-        user_id: currentUserId,
-        type
+        user_id: currentUserId
       })
     });
 
-    alert("Покупка обработана!");
+    alert("TON зачислены!");
     loadPlayer();
 
   } catch (e) {
-  alert("Произошла неизвестная ошибка!");
+    alert("Ошибка платежа");
   }
+}
+
+async function swapTonToDC() {
+
+  const amount = parseFloat(
+    document.getElementById("swap-ton").value
+  );
+
+  if (!amount || amount <= 0) {
+    alert("Введите сумму");
+    return;
+  }
+
+  const res = await fetch(`${API_URL}/swap`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: currentUserId,
+      direction: "TON_TO_DC",
+      amount
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  alert("Успешно!");
+  loadPlayer();
+}
+
+async function swapDCToTon() {
+
+  const amount = parseFloat(
+    document.getElementById("swap-dc").value
+  );
+
+  if (!amount || amount <= 0) {
+    alert("Введите сумму");
+    return;
+  }
+
+  const res = await fetch(`${API_URL}/swap`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: currentUserId,
+      direction: "DC_TO_TON",
+      amount
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  alert("Успешно!");
+  loadPlayer();
+}
+
+async function withdrawTon() {
+
+  const amount = parseFloat(
+    document.getElementById("withdraw-amount").value
+  );
+
+  const address =
+    document.getElementById("withdraw-address").value;
+
+  if (!amount || amount <= 0 || !address) {
+    alert("Заполните данные");
+    return;
+  }
+
+  const res = await fetch(`${API_URL}/withdraw`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: currentUserId,
+      amount,
+      address
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  alert("Заявка создана");
+  loadPlayer();
 }
 
 loadPlayer();
