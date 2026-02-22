@@ -340,6 +340,68 @@ button:disabled {
   transform: scale(0.9);
   background: rgba(245,199,122,0.3);
 }
+
+/* ===== EXCHANGE PREMIUM ===== */
+
+.pool-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #1b2236, #0f1424);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  border: 1px solid rgba(245,199,122,0.15);
+}
+
+.pool-card::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: radial-gradient(circle at top right, rgba(245,199,122,0.2), transparent 60%);
+  z-index: 0;
+}
+
+.pool-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.pool-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.pool-value {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.price-glow {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(245,199,122,0.6);
+}
+
+.fee-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.preview-box {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fee-highlight {
+  font-size: 11px;
+  color: var(--muted);
+}
   </style>
 </head>
 <body>
@@ -491,11 +553,34 @@ button:disabled {
 <!-- ===== EXCHANGE (СВАП) ===== -->
 <div id="tab-exchange" class="tab">
 
-  <div class="box">
-    <h3>📊 Экономика</h3>
-    <div>Pool TON: <span id="pool-ton">0</span></div>
-    <div>Pool DigCoin: <span id="pool-dc">0</span></div>
-    <div>Price: <span id="pool-price">0</span> TON</div>
+  <div class="pool-card">
+  <div class="pool-inner">
+
+    <h3 style="margin-top:0;">📊 Экономика пула</h3>
+
+    <div class="pool-row">
+      <div>TON в пуле</div>
+      <div class="pool-value"><span id="pool-ton">0</span></div>
+    </div>
+
+    <div class="pool-row">
+      <div>DigCoin в пуле</div>
+      <div class="pool-value"><span id="pool-dc">0</span></div>
+    </div>
+
+    <div class="pool-row" style="margin-top:12px;">
+      <div>Текущая цена</div>
+      <div class="price-glow">
+        <span id="pool-price">0</span> TON
+      </div>
+    </div>
+
+    <div class="fee-note">
+      Комиссия свапа: <b>5%</b><br>
+      2% создателю • 1.5% автоликвидность • 1% резерв • 0.5% маркетинг
+    </div>
+
+  </div>
   </div>
   
   <div class="box">
@@ -513,14 +598,16 @@ button:disabled {
   <div class="box">
     <h4>🔄 Купить DigCoin</h4>
     <input id="swap-ton" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
-    <div id="preview-ton-dc"></div>
+    <div id="preview-ton-dc" class="preview-box"></div>
+    <div class="fee-highlight">Комиссия 5% удерживается в TON</div>
     <button onclick="swapTonToDC()">Обменять TON → DigCoin</button>
   </div>
 
   <div class="box">
     <h4>🔄 Продать DigCoin</h4>
     <input id="swap-dc" type="number" placeholder="DigCoin" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
-    <div id="preview-dc-ton"></div>
+    <div id="preview-dc-ton" class="preview-box"></div>
+    <div class="fee-highlight">Комиссия 5% удерживается в TON</div>
     <button onclick="swapDCToTon()">Обменять DigCoin → TON</button>
   </div>
 
