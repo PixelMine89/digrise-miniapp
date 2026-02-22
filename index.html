@@ -492,6 +492,13 @@ button:disabled {
 <div id="tab-exchange" class="tab">
 
   <div class="box">
+    <h3>📊 Экономика</h3>
+    <div>Pool TON: <span id="pool-ton">0</span></div>
+    <div>Pool DigCoin: <span id="pool-dc">0</span></div>
+    <div>Price: <span id="pool-price">0</span> TON</div>
+  </div>
+  
+  <div class="box">
     <h3>💳 Баланс</h3>
     <div>TON: <span id="virtual-ton">0</span></div>
     <div>DigCoin: <span id="dig-coin"></span></div>
@@ -506,12 +513,14 @@ button:disabled {
   <div class="box">
     <h4>🔄 Купить DigCoin</h4>
     <input id="swap-ton" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <div id="preview-ton-dc"></div>
     <button onclick="swapTonToDC()">Обменять TON → DigCoin</button>
   </div>
 
   <div class="box">
     <h4>🔄 Продать DigCoin</h4>
     <input id="swap-dc" type="number" placeholder="DigCoin" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <div id="preview-dc-ton"></div>
     <button onclick="swapDCToTon()">Обменять DigCoin → TON</button>
   </div>
 
@@ -791,6 +800,7 @@ async function loadPlayer() {
   
   renderPlayer(player);
   checkHuntOnLoad();
+  loadPool();
 
   playerInterval = setInterval(loadPlayerDataOnly, 500);
 
@@ -1091,6 +1101,69 @@ function copyRef() {
   const text = document.getElementById("refLink").innerText;
   navigator.clipboard.writeText(text);
   alert("Ссылка скопирована!");
+}
+
+async function loadPool() {
+  const res = await fetch(`${API_URL}/pool`);
+  const data = await res.json();
+
+  document.getElementById("pool-ton").innerText =
+    data.ton.toFixed(2);
+
+  document.getElementById("pool-dc").innerText =
+    data.digcoin.toFixed(0);
+
+  document.getElementById("pool-price").innerText =
+    data.price.toFixed(8);
+}
+
+document.getElementById("swap-ton").addEventListener("input", previewTonToDC);
+document.getElementById("swap-dc").addEventListener("input", previewDCToTon);
+
+async function previewTonToDC() {
+
+  const amount = parseFloat(
+    document.getElementById("swap-ton").value
+  );
+
+  if (!amount || amount <= 0) return;
+
+  const res = await fetch(`${API_URL}/swap/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      direction: "TON_TO_DC",
+      amount
+    })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("preview-ton-dc").innerText =
+    `Получите ≈ ${data.receive.toFixed(2)} DigCoin`;
+}
+
+async function previewDCToTon() {
+
+  const amount = parseFloat(
+    document.getElementById("swap-dc").value
+  );
+
+  if (!amount || amount <= 0) return;
+
+  const res = await fetch(`${API_URL}/swap/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      direction: "DC_TO_TON",
+      amount
+    })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("preview-dc-ton").innerText =
+    `Получите ≈ ${data.receive.toFixed(4)} TON`;
 }
 
 /* ================== RENDER ================== */
