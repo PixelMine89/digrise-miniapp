@@ -1214,8 +1214,10 @@ async function previewTonToDC() {
     document.getElementById("swap-ton").value
   );
 
-  if (!amount || amount <= 0) return;
-
+  if (!amount || isNaN(amount) || amount <= 0) {
+  document.getElementById("preview-ton-dc").innerHTML = "";
+  return;
+  }
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1237,7 +1239,10 @@ async function previewDCToTon() {
     document.getElementById("swap-dc").value
   );
 
-  if (!amount || amount <= 0) return;
+  if (!amount || isNaN(amount) || amount <= 0) {
+  document.getElementById("preview-dc-ton").innerHTML = "";
+  return;
+}
 
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
