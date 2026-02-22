@@ -1219,10 +1219,10 @@ async function previewTonToDC() {
   return;
   }
 
-  if (amount <= 1) {
+  /*if (amount <= 1) {
   document.getElementById("swap-ton").value = 1;
   amount = 1;
-  }
+  }*/
   
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
