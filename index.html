@@ -1260,6 +1260,39 @@ async function previewDCToTon() {
     `Получите ≈ ${data.receive.toFixed(4)} TON`;
 }
 
+document.getElementById("deposit-amount").addEventListener("input", checkDepositAmount);
+document.getElementById("withdraw-amount").addEventListener("input", checkWithdrawAmount);
+
+async function checkDepositAmount() {
+
+  const amount = parseFloat(
+    document.getElementById("deposit-amount").value
+  );
+
+  if (!amount || isNaN(amount) || amount <= 0) {
+    return;
+  }
+
+  if (amount <= 1) {
+    document.getElementById("deposit-amount").value = 1;
+  }
+}
+
+async function checkWithdrawAmount() {
+
+  const amount = parseFloat(
+    document.getElementById("withdraw-amount").value
+  );
+
+  if (!amount || isNaN(amount) || amount <= 0) {
+    return;
+  }
+
+  if (amount <= 2) {
+    document.getElementById("withdraw-amount").value = 2;
+  }
+}
+
 /* ================== RENDER ================== */
 function renderPlayer(player) {
   document.getElementById("loader").style.display = "none";
