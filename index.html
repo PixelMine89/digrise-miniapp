@@ -1269,7 +1269,7 @@ async function checkDepositAmount() {
     document.getElementById("deposit-amount").value
   );
 
-  if (!amount || isNaN(amount) || amount < 0) {
+  if (isNaN(amount)) {
     return;
   }
 
@@ -1284,7 +1284,7 @@ async function checkWithdrawAmount() {
     document.getElementById("withdraw-amount").value
   );
 
-  if (!amount || isNaN(amount) || amount < 0) {
+  if (isNaN(amount)) {
     return;
   }
 
