@@ -592,7 +592,7 @@ button:disabled {
 
   <div class="box">
     <h4>📥 Пополнить TON</h4>
-    <input id="deposit-amount" type="number" placeholder="Сколько TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="deposit-amount" type="number" min="0.5" max="1000" step="2" placeholder="TON (минимум 0.5)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="depositTon()">Пополнить</button>
   </div>
 
@@ -614,7 +614,7 @@ button:disabled {
 
   <div class="box">
     <h4>📤 Вывести TON</h4>
-    <input id="withdraw-amount" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="withdraw-amount" type="number" min="2" max="1000" step="2"  placeholder="TON (минимум 2)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <input id="withdraw-address" type="text" placeholder="Адрес TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="withdrawTon()">Заказать вывод</button>
   </div>
