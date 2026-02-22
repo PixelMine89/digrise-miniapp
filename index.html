@@ -1210,7 +1210,7 @@ document.getElementById("swap-dc").addEventListener("input", previewDCToTon);
 
 async function previewTonToDC() {
 
-  const amount = parseFloat(
+  let amount = parseFloat(
     document.getElementById("swap-ton").value
   );
 
@@ -1241,7 +1241,7 @@ async function previewTonToDC() {
 
 async function previewDCToTon() {
 
-  const amount = parseFloat(
+  let amount = parseFloat(
     document.getElementById("swap-dc").value
   );
 
