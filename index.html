@@ -1210,7 +1210,7 @@ document.getElementById("swap-dc").addEventListener("input", previewDCToTon);
 
 async function previewTonToDC() {
 
-  let amount = parseFloat(
+  const amount = parseFloat(
     document.getElementById("swap-ton").value
   );
 
@@ -1218,11 +1218,6 @@ async function previewTonToDC() {
   document.getElementById("preview-ton-dc").innerHTML = "";
   return;
   }
-
-  /*if (amount <= 1) {
-  document.getElementById("swap-ton").value = 1;
-  amount = 1;
-  }*/
   
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
@@ -1241,7 +1236,7 @@ async function previewTonToDC() {
 
 async function previewDCToTon() {
 
-  let amount = parseFloat(
+  const amount = parseFloat(
     document.getElementById("swap-dc").value
   );
 
@@ -1249,11 +1244,6 @@ async function previewDCToTon() {
   document.getElementById("preview-dc-ton").innerHTML = "";
   return;
 }
-
-  if (amount <= 2) {
-  document.getElementById("swap-dc").value = 2;
-  amount = 2;
-  }
 
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
