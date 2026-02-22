@@ -592,7 +592,7 @@ button:disabled {
 
   <div class="box">
     <h4>📥 Пополнить TON</h4>
-    <input id="deposit-amount" type="number" min="0.5" max="1000" step="2" placeholder="TON (минимум 0.5)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="deposit-amount" type="number" min="1" max="1000" step="2" placeholder="TON (минимум 1)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="depositTon()">Пополнить</button>
   </div>
 
@@ -1218,6 +1218,12 @@ async function previewTonToDC() {
   document.getElementById("preview-ton-dc").innerHTML = "";
   return;
   }
+
+  if (amount <= 1) {
+  document.getElementById("swap-ton").value = 1;
+  amount = 1;
+  }
+  
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1243,6 +1249,11 @@ async function previewDCToTon() {
   document.getElementById("preview-dc-ton").innerHTML = "";
   return;
 }
+
+  if (amount <= 2) {
+  document.getElementById("swap-dc").value = 2;
+  amount = 2;
+  }
 
   const res = await fetch(`${API_URL}/swap/preview`, {
     method: "POST",
