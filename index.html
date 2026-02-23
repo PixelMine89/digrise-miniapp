@@ -481,7 +481,7 @@ button:disabled {
 
   <div class="box">
     <h4>📥 Пополнить TON</h4>
-    <input id="deposit-amount" type="number" min="1" max="1000" step="2" placeholder="TON (минимум 1)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="deposit-amount" type="number" placeholder="TON (минимум 1)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="depositTon()">Пополнить</button>
   </div>
 
@@ -503,7 +503,7 @@ button:disabled {
 
   <div class="box">
     <h4>📤 Вывести TON</h4>
-    <input id="withdraw-amount" type="number" min="2" max="1000" step="2"  placeholder="TON (минимум 2)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="withdraw-amount" type="number" placeholder="TON (минимум 2)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <input id="withdraw-address" type="text" placeholder="Адрес TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="withdrawTon()">Заказать вывод</button>
   </div>
@@ -587,12 +587,7 @@ let playerInterval = null;
 
 /* ================== NAV ================== */
 function showTab(tab) {
-  if (tab !== "hunt" && huntStateInterval) {
-  clearInterval(huntStateInterval);
-  huntStateInterval = null;
-  }
-  
-  ["mine", "craft", "market", "exchange", "hunt", "tasks"].forEach(t => {
+  ["mine", "craft", "market", "tasks", "exchange"].forEach(t => {
     document.getElementById(`tab-${t}`).style.display =
       t === tab ? "block" : "none";
   });
@@ -633,7 +628,7 @@ async function loadPlayer() {
   renderPlayer(player);
   loadPool();
 
-  playerInterval = setInterval(loadPlayerDataOnly, 500);
+  playerInterval = setInterval(loadPlayerDataOnly, 2000);
 
   // 🔥 ВАЖНО: сразу открываем шахту
   showTab("mine");
