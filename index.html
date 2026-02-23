@@ -130,82 +130,7 @@ button:disabled {
   padding: 16px;
 }
 
-/* ===== MINE ===== */
-.mine-shaft {
-  height: 240px;
-  background: linear-gradient(180deg, #0c1020, #070a14);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.block {
-  width: 140px;
-  height: 140px;
-  border-radius: 16px;
-  background: #444;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.hunt-block {
-  width: 70px;
-  height: 70px;
-  border-radius: 10px;
-  font-size: 10px;
-}
-
-.hp-bar {
-  width: 100%;
-  height: 8px;
-  background: #222;
-  border-radius: 4px;
-  margin-top: 8px;
-  overflow: hidden;
-}
-
-.hp-fill {
-  height: 100%;
-  background: var(--success);
-}
-
-.mineBtn {
-  width: 100%;
-}
-
-/* ===== FURNACE ===== */
-
-.furnace-core {
-  height: 200px;
-  border-radius: 16px;
-  background: radial-gradient(circle, #ffae42, #5a2a00);
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;          
-}
-
-.furnace-core-button {
-  height: 80px;
-  width: calc(50% - 20px);
-  margin: 10px;
-}
-
-/* ===== EQUIP ===== */
-.item {
-  background: #1a1f33;
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 8px;
-}
-
 /* ===== NEW BOTTOM NAV ===== */
-
 .nav-wrapper {
   position: fixed;
   bottom: 16px;
@@ -308,18 +233,6 @@ button:disabled {
 }
 
     /* ===== MINE INFO BUTTON ===== */
-
-.mine-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.mine-stats-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 
 .info-btn {
   width: 28px;
@@ -431,101 +344,14 @@ button:disabled {
   </div>
   <!-- ===== MINE ===== -->
   <div id="tab-mine" class="tab">
-    <div class="mine-shaft">
-      <div class="block" id="blockVisual">
-        <div id="blockType"></div>
-        <div class="hp-bar">
-          <div class="hp-fill" id="hpFill"></div>
-        </div>
-        <div id="blockHp"></div>
-      </div>
-    </div>
-    <div class="box mine-stats">
-      <div class="mine-stats-left">
-        <div>⚡ Энергия: <span id="energy"></span></div>
-        <div>⬇️ Глубина: <span id="depth"></span></div>
-      </div>
-      <div class="info-btn" onclick="openMineInfo()">i</div>
-    </div>
-    <div style="text-align: center;">
-      <button class="mineBtn" id="mineBtn">⛏️ Копать</button>
-    </div>
-    <div id="reward" style="margin-top:10px;"></div>
-    <div style="margin-top:12px; text-align:center;">
-      <button id="huntBtn" onclick="onHuntButton()">🎯 Охота за $DigCoin</button>
-    </div>
+    <div class="info-btn" onclick="openMineInfo()">i</div>
+    <!-- тут будет карта с шахтами и т.д. -->
   </div>
-  <!-- ===== HUNT ===== -->
-  <div id="tab-hunt" class="tab">
-    <div class="box">
-      <div>⏳ Осталось: <span id="hunt-timer">--:--</span></div>
-      <div>💰 Заработано: <span id="hunt-earned">0</span> $DigCoin</div>
-      <div>⚡ Энергия: <span id="hunt-energy"></span></div>
-    </div>
-    <div class="box">
-      <div id="hunt-grid" style="
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-      "></div>
-    </div>
-    <button id="hunt-mine-btn" disabled>⛏️ Копать</button>
-  </div>
+  
   <!-- ===== CRAFT (Печь + Экип) ===== -->
-<div id="tab-craft" class="tab">
-
-  <div class="box">
-    <h3>🪨 Ваша руда</h3>
-    <div>🪨 Уголь: <span id="ore-coal"></span></div>
-    <div>🟤 Медная руда: <span id="ore-copper"></span></div>
-    <div>⚙️ Железная руда: <span id="ore-iron"></span></div>
-    <div>🟡 Золотая руда: <span id="ore-gold"></span></div>
-    <div>💎 Алмазная руда: <span id="ore-diamond"></span></div>
+  <div id="tab-craft" class="tab">
+    <!-- тут будет крафт, ресурсы и другие новые механики-->
   </div>
-
-  <div class="box">
-    <h3>🔥 Плавка</h3>
-
-    <div>🟤 Медные слитки: <span id="ingot-copper"></span></div>
-    <div>⚙️ Железные слитки: <span id="ingot-iron"></span></div>
-    <div>🟡 Золотые слитки: <span id="ingot-gold"></span></div>
-    <div>💎 Алмазы: <span id="ingot-diamond"></span></div>
-
-    <div class="furnace-core">
-      <button class="furnace-core-button" onclick="smelt('copper')">
-        Медный слиток<br>(1 медная руда, 2 угля)
-      </button>
-      <button class="furnace-core-button" onclick="smelt('iron')">
-        Железный слиток<br>(1 железная руда, 2 угля)
-      </button>
-      <button class="furnace-core-button" onclick="smelt('gold')">
-        Золотой слиток<br>(1 золотая руда, 2 угля)
-      </button>
-      <button class="furnace-core-button" onclick="smelt('diamond')">
-        Алмаз<br>(1 алмазная руда, 2 угля)
-      </button>
-    </div>
-
-    <div id="smeltResult"></div>
-
-    <div class="box">
-      <div>🔥 Опыт: <span id="smeltXp"></span></div>
-      <div>🎯 Шанс: <span id="smeltChance"></span></div>
-    </div>
-  </div>
-
-  <div class="box">
-    <h3>⛏️ Крафт кирок</h3>
-    <div id="craft-pickaxes"></div>
-  </div>
-
-  <div class="box">
-    <h3>🎒 Мои кирки</h3>
-    <div id="my-pickaxes"></div>
-  </div>
-
-</div>
-
 
 <!-- ===== MARKET ===== -->
 <div id="tab-market" class="tab">
@@ -550,6 +376,69 @@ button:disabled {
   </div>
 </div>
 
+  <!-- ===== TASKS ===== -->
+  <div id="tab-tasks" class="tab">
+    <div class="box" style="text-align:center;">
+      <h3>📜 Задания</h3>
+    </div>
+    <!-- TELEGRAM TASK -->
+    <div class="box" id="channelTaskBox">
+      <b>📢 Вступить в Telegram канал</b>
+      <p class="label">
+        Вступите в наш канал и получите 50 DigCoin
+      </p>
+
+      <div id="channelTaskActions">
+        <button onclick="joinChannel()">Перейти в канал</button>
+        <button id="checkChannelBtn" onclick="checkChannelTask()">
+          Проверить выполнение
+        </button>
+      </div>
+
+      <div id="channelTaskDone" style="
+        display:none;
+        margin-top:10px;
+        padding:10px;
+        background: rgba(0,255,150,0.1);
+        border:1px solid rgba(0,255,150,0.3);
+        border-radius:8px;
+        color:#00ff95;
+        font-weight:bold;
+        text-align:center;
+      ">
+        ✅ Задание выполнено!
+      </div>
+    </div>
+    <!-- REFERRAL TASK -->
+    <div class="box">
+      <b>👥 Приглашай друзей</b>
+      <p class="label">
+        За каждого друга, который выполнил задание
+        "Вступить в Telegram канал" — 100 DigCoin
+      </p>
+      <div style="font-size:12px; margin:8px 0;">
+        Ваша ссылка:
+        <div id="refLink" style="
+          word-break: break-all;
+          font-size:11px;
+          color: var(--accent);
+          margin-top:4px;">
+        </div>
+      </div>
+      <button onclick="copyRef()">Скопировать ссылку</button>
+      <div style="margin-top:12px;">
+        <b>Приглашенные друзья:</b>
+        <div id="refFriends" style="
+          max-height:120px;
+          overflow-y:auto;
+          font-size:12px;
+          margin-top:6px;
+          color: var(--muted);
+        ">
+        </div>
+      </div>
+    </div>
+  </div>
 
 <!-- ===== EXCHANGE (СВАП) ===== -->
 <div id="tab-exchange" class="tab">
@@ -620,105 +509,7 @@ button:disabled {
   </div>
 
 </div>
-  <!-- ===== TASKS ===== -->
-  <div id="tab-tasks" class="tab">
-    <div class="box" style="text-align:center;">
-      <h3>📜 Задания</h3>
-    </div>
-    <!-- TELEGRAM TASK -->
-    <div class="box" id="channelTaskBox">
-      <b>📢 Вступить в Telegram канал</b>
-      <p class="label">
-        Вступите в наш канал и получите 50 DigCoin
-      </p>
 
-      <div id="channelTaskActions">
-        <button onclick="joinChannel()">Перейти в канал</button>
-        <button id="checkChannelBtn" onclick="checkChannelTask()">
-          Проверить выполнение
-        </button>
-      </div>
-
-      <div id="channelTaskDone" style="
-        display:none;
-        margin-top:10px;
-        padding:10px;
-        background: rgba(0,255,150,0.1);
-        border:1px solid rgba(0,255,150,0.3);
-        border-radius:8px;
-        color:#00ff95;
-        font-weight:bold;
-        text-align:center;
-      ">
-        ✅ Задание выполнено!
-      </div>
-    </div>
-    <!-- REFERRAL TASK -->
-    <div class="box">
-      <b>👥 Приглашай друзей</b>
-      <p class="label">
-        За каждого друга, который выполнил задание
-        "Вступить в Telegram канал" — 100 DigCoin
-      </p>
-      <div style="font-size:12px; margin:8px 0;">
-        Ваша ссылка:
-        <div id="refLink" style="
-          word-break: break-all;
-          font-size:11px;
-          color: var(--accent);
-          margin-top:4px;">
-        </div>
-      </div>
-      <button onclick="copyRef()">Скопировать ссылку</button>
-      <div style="margin-top:12px;">
-        <b>Приглашенные друзья:</b>
-        <div id="refFriends" style="
-          max-height:120px;
-          overflow-y:auto;
-          font-size:12px;
-          margin-top:6px;
-          color: var(--muted);
-        ">
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="huntResultModal" style="
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-  ">
-    <div class="box" style="max-width:300px; text-align:center;">
-      <h3>🎯 Охота завершена</h3>
-      <div style="margin:12px 0;">
-        Заработано:<br>
-        <b><span id="huntResultEarned">0</span> $DigCoin</b>
-      </div>
-      <button onclick="closeHuntResult()">Закрыть</button>
-    </div>
-  </div>
-  <div id="huntCooldownModal" style="
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-  ">
-    <div class="box" style="max-width:300px; text-align:center;">
-      <h3>⏳ Охота недоступна</h3>
-      <div style="margin:12px 0;">
-        Следующая охота через:<br>
-        <b><span id="huntCooldownTime">--:--</span></b>
-      </div>
-      <button onclick="closeHuntCooldown()">Закрыть</button>
-    </div>
-  </div>
   <div id="mineInfoModal" style="
     position: fixed;
     inset: 0;
@@ -743,22 +534,7 @@ button:disabled {
         margin: 12px 0;
         line-height: 1.5;
       ">
-        <strong>Энергия</strong> - параметр который позволяет вам копать
-        блоки в шахте, а так же на охоте. При включенной
-        автокопке в течении заданного времени будет расходоваться 
-        вся энергия за этот период. <br><br>
-        <strong>Глубина</strong> - параметр который показывает количество
-        выкопанных блоков. Чем больше глубина - тем больше
-        шанс выпадения ценных блоков! Максимальное увеличение x2<br><br>
-        <strong>Охота за $DigCoin</strong> - режим в котором вы можете
-        зарабатывать DigCoin. Подробнее о них вы можете прочитать в
-        разделе вывод в меню снизу.<br>
-        Охота длится 10 минут, не чаще чем раз в 24 часа. После начала охоты,
-        вам необходимо выбрать один из девяти блоков, после чего
-        вы можете добывать его. Блок существует от 30сек до 5 минут после 
-        появления, после чего заменяется на случайный. Если вы успели выкопать
-        блок - вы получите некоторое количество DigCoin в зависимости от его 
-        ценности. После чего блок немедленно заменится.<br>
+        Скоро здесь будет информация...
       </div>
       <button onclick="closeMineInfo()">Закрыть</button>
     </div>
@@ -806,40 +582,8 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
 });
   
 let currentUserId = null;
-let startParam = null;
-
-let huntSelectedIndex = null;
-let huntTimerInterval = null;
-let huntStateInterval = null;
-let currentHuntActive = false;
-let huntMineInProgress = false;
 
 let playerInterval = null;
-
-const BLOCK_NAMES = {
-  stone: "Камень",
-  coal: "Угольный блок",
-  copper: "Медный блок",
-  iron: "Железный блок",
-  gold: "Золотой блок",
-  diamond: "Алмазный блок"
-};
-
-const PICKAXE_CRAFTS = [
-  { type: "copper", name: "Медная кирка", cost: 25, chance: 0.8 },
-  { type: "iron", name: "Железная кирка", cost: 25, chance: 0.6 },
-  { type: "gold", name: "Золотая кирка", cost: 25, chance: 0.4 },
-  { type: "diamond", name: "Алмазная кирка", cost: 25, chance: 0.2 }
-];
-
-const BLOCK_COLORS = {
-  stone: "#555",
-  coal: "#222",
-  copper: "#b87333",
-  iron: "#aaa",
-  gold: "#f5c77a",
-  diamond: "#4fdcff"
-};
 
 /* ================== NAV ================== */
 function showTab(tab) {
@@ -887,7 +631,6 @@ async function loadPlayer() {
   const player = await res.json();
   
   renderPlayer(player);
-  checkHuntOnLoad();
   loadPool();
 
   playerInterval = setInterval(loadPlayerDataOnly, 500);
@@ -902,232 +645,7 @@ async function loadPlayerDataOnly() {
   );
   const player = await res.json();
   renderPlayer(player);
-}
-
-/* ================== MINE ================== */
-document.getElementById("mineBtn").onclick = async () => {
-  const res = await fetch(`${API_URL}/mine?user_id=${currentUserId}`);
-  const data = await res.json();
-
-  if (data.error === "NO_ENERGY") {
-    alert("Нет энергии");
-    return;
-  }
-
-  renderPlayer(data.user);
-
-  const rewardEl = document.getElementById("reward");
-  rewardEl.innerText = "";
-
-  if (data.reward) {
-    const names = {
-      coal: "Уголь",
-      copper_ore: "Медная руда",
-      iron_ore: "Железная руда",
-      gold_ore: "Золотая руда",
-      diamond_ore: "Алмазная руда"
-    };
-    rewardEl.innerText = `Получено: ${names[data.reward]} ×1`;
-  }
-};
-
-/* ================== FURNACE ================== */
-async function smelt(type) {
-  const res = await fetch(
-    `${API_URL}/smelt?user_id=${currentUserId}&ore=${type}`
-  );
-
-  const data = await res.json();
-  const out = document.getElementById("smeltResult");
-
-  if (data.error) {
-    out.innerText =
-      data.error === "NO_ORE"
-        ? "Нет руды"
-        : "Нужно 2 угля";
-    return;
-  }
-
-  out.innerText =
-    data.result === "success"
-      ? "✅ Получен слиток"
-      : "❌ Не удалось";
-
-  loadPlayer();
-}
-
-/* ================== EQUIP ================== */
-async function craftPickaxe(type) {
-  const res = await fetch(`${API_URL}/craftPickaxe`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: currentUserId, type })
-  });
-
-  const data = await res.json();
-  alert(data.success ? "Кирка создана!" : "Неудача 😢");
-  loadPlayer();
-}
-
-async function equipPickaxe(id) {
-  await fetch(`${API_URL}/equipPickaxe`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: currentUserId, pickaxeId: id })
-  });
-  loadPlayer();
-}
-
-async function startHunt() {
-  const res = await fetch(`${API_URL}/hunt/start?user_id=${currentUserId}`);
-  const data = await res.json();
-
-  if (data.error === "HUNT_COOLDOWN") {
-    showHuntCooldown(data.nextAvailableAt);
-    return;
-  }
-
-  if (data.error) {
-    return;
-  }
-
-  showTab("hunt");
-  loadHuntState();
-}
-
-function onHuntButton() {
-  if (currentHuntActive) {
-    showTab("hunt");
-    loadHuntState();
-  } else {
-    startHunt();
-  }
-}
-
-async function loadHuntState() {
-  const res = await fetch(`${API_URL}/hunt/state?user_id=${currentUserId}`);
-  const data = await res.json();
-
-  currentHuntActive = data.active;
-
-const huntBtn = document.getElementById("huntBtn");
-if (huntBtn) {
-  huntBtn.innerText = data.active
-    ? "🎯 Продолжить охоту"
-    : "🎯 Охота за $DigCoin";
-}
-
-if (!data.active) {
-  if (data.finished) {
-    showHuntResult(data.earned);
-    return;
-  }
-
-  if (data.nextAvailableAt && data.nextAvailableAt > Date.now()) {
-    showHuntCooldown(data.nextAvailableAt);
-    return;
-  }
-
-  return;
-}
-
-if (!data.blocks || !Array.isArray(data.blocks)) {
-  console.warn("Hunt blocks not ready yet");
-  return;
-}
-
-renderHunt(data);
-
-  if (!huntStateInterval) {
-    huntStateInterval = setInterval(loadHuntState, 1000);
-  }
-}
-
-async function checkHuntOnLoad() {
-  const res = await fetch(
-    `${API_URL}/hunt/state?user_id=${currentUserId}`
-  );
-  const data = await res.json();
-
-  currentHuntActive = data.active;
-
-  const huntBtn = document.getElementById("huntBtn");
-  if (huntBtn) {
-    huntBtn.innerText = data.active
-      ? "🎯 Продолжить охоту"
-      : "🎯 Охота за $DigCoin";
-  }
-
-  // ✅ ВАЖНО: если охота ЗАКОНЧИЛАСЬ пока игрока не было
-  if (!data.active && data.finished) {
-    showHuntResult(data.earned);
-  }
-}
-
-document.getElementById("hunt-mine-btn").onclick = async () => {
-  if (huntSelectedIndex === null) return;
-
-  const res = await fetch(
-    `${API_URL}/hunt/mine?user_id=${currentUserId}&index=${huntSelectedIndex}`
-  );
-
-  const data = await res.json();
-
-  if (data.error === "NO_ENERGY") {
-    alert("Нет энергии");
-    return;
-  }
-
-  if (data.success) {
-    await loadHuntState();
-  }
-};
-
-function showHuntResult(earned) {
-  document.getElementById("huntResultEarned").innerText = earned;
-  document.getElementById("huntResultModal").style.display = "flex";
-}
-
-function closeHuntResult() {
-  document.getElementById("huntResultModal").style.display = "none";
-  showTab("mine");
-  loadPlayer();
-}
-
-let huntCooldownInterval = null;
-
-function showHuntCooldown(nextAvailableAt) {
-  const modal = document.getElementById("huntCooldownModal");
-  const timeEl = document.getElementById("huntCooldownTime");
-
-  modal.style.display = "flex";
-
-  function tick() {
-    const left = nextAvailableAt - Date.now();
-
-    if (left <= 0) {
-      clearInterval(huntCooldownInterval);
-      modal.style.display = "none";
-      loadPlayer();
-      return;
-    }
-
-    const hours = Math.floor(left / 3600000);
-    const minutes = Math.floor((left % 3600000) / 60000);
-
-    timeEl.innerText = `${hours}ч ${minutes}м`;
-  }
-
-  tick();
-  huntCooldownInterval = setInterval(tick, 1000);
-}
-
-function closeHuntCooldown() {
-  if (huntCooldownInterval) {
-    clearInterval(huntCooldownInterval);
-    huntCooldownInterval = null;
-  }
-  document.getElementById("huntCooldownModal").style.display = "none";
+  loadPool();
 }
 
 function openMineInfo() {
@@ -1309,24 +827,7 @@ if (tg.initDataUnsafe?.user?.photo_url) {
   document.getElementById("playerAvatar").src =
     tg.initDataUnsafe.user.photo_url;
 }
-
-  document.getElementById("energy").innerText =
-    `${player.energy} / ${player.maxEnergy}`;
-  document.getElementById("depth").innerText = player.depth;
-
-  // Руда
-  document.getElementById("ore-coal").innerText = player.ores.coal;
-  document.getElementById("ore-copper").innerText = player.ores.copper_ore;
-  document.getElementById("ore-iron").innerText = player.ores.iron_ore;
-  document.getElementById("ore-gold").innerText = player.ores.gold_ore;
-  document.getElementById("ore-diamond").innerText = player.ores.diamond_ore;
-
-  // Слитки (печь)
-  document.getElementById("ingot-copper").innerText = player.ingots.copper;
-  document.getElementById("ingot-iron").innerText = player.ingots.iron;
-  document.getElementById("ingot-gold").innerText = player.ingots.gold;
-  document.getElementById("ingot-diamond").innerText = player.ingots.diamond;
-
+  
   // DigCoin
   document.getElementById("dig-coin").innerText =
   player.digCoin;
@@ -1334,151 +835,6 @@ if (tg.initDataUnsafe?.user?.photo_url) {
   // Virtual Ton
   document.getElementById("virtual-ton").innerText =
   player.virtualTon?.toFixed(4);
-  
-  // Блок
-  document.getElementById("blockType").innerText =
-    BLOCK_NAMES[player.currentBlock.type];
-
-  document.getElementById("blockVisual").style.background =
-  BLOCK_COLORS[player.currentBlock.type] || "#444";
-
-  document.getElementById("blockHp").innerText =
-    `${player.currentBlock.hp} / ${player.currentBlock.maxHp}`;
-
-  document.getElementById("hpFill").style.width =
-    (player.currentBlock.hp / player.currentBlock.maxHp) * 100 + "%";
-
-  // Печь
-  document.getElementById("smeltXp").innerText = player.smeltXp || 0;
-
-  const chance = Math.min(
-    0.5 + ((player.smeltXp || 0) / 1000) * 0.3,
-    0.8
-  );
-  document.getElementById("smeltChance").innerText =
-    Math.floor(chance * 100) + "%";
-
-  renderCraft(player);
-  renderPickaxes(player);
-}
-
-function renderCraft(player) {
-  const box = document.getElementById("craft-pickaxes");
-  box.innerHTML = "";
-
-  PICKAXE_CRAFTS.forEach(c => {
-    const have = player.ingots[c.type] || 0;
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-  <b>${c.name}</b><br>
-  Нужно: ${c.cost}<br>
-  Шанс: ${Math.floor(c.chance * 100)}%<br>
-  У вас: ${have}<br>
-
-  <button ${have < c.cost ? "disabled" : ""} onclick="craftPickaxe('${c.type}')">
-    Крафт
-  </button>
-`;
-    box.appendChild(div);
-  });
-}
-
-function renderPickaxes(player) {
-  const box = document.getElementById("my-pickaxes");
-  box.innerHTML = "";
-
-  if (!player.pickaxes?.length) {
-    box.innerText = "Кирок нет";
-    return;
-  }
-
-  player.pickaxes.forEach(p => {
-    const eq = player.equippedPickaxeId === p.id;
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <b>${p.type.toUpperCase()} кирка</b><br>
-      ⛏️ Сила: +${p.stats.power}<br>
-      ⚡ Крит: +${p.stats.critChance}<br>
-      <button onclick="equipPickaxe('${p.id}')">
-        ${eq ? "Снять" : "Экипировать"}
-      </button>
-    `;
-    box.appendChild(div);
-  });
-}
-
-function renderHunt(hunt) {
-  document.getElementById("hunt-earned").innerText = hunt.earned;
-  document.getElementById("hunt-energy").innerText =
-  `${hunt.energy} / ${hunt.maxEnergy}`;
-
-  renderHuntTimer(hunt.endsAt);
-  renderHuntBlocks(hunt.blocks);
-}
-
-function renderHuntTimer(endsAt) {
-  endsAt = Number(endsAt);
-  
-  if (huntTimerInterval) clearInterval(huntTimerInterval);
-
-  function tick() {
-    const left = endsAt - Date.now();
-
-    if (left <= 0) {
-      clearInterval(huntTimerInterval);
-      clearInterval(huntStateInterval);
-      huntStateInterval = null;
-      showTab("mine");
-      loadPlayer();
-      return;
-    }
-
-    const min = Math.floor(left / 60000);
-    const sec = Math.floor((left % 60000) / 1000);
-    document.getElementById("hunt-timer").innerText =
-      `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-  }
-
-  tick();
-  huntTimerInterval = setInterval(tick, 1000);
-}
-
-function renderHuntBlocks(blocks) {
-  const grid = document.getElementById("hunt-grid");
-  grid.innerHTML = "";
-
-  blocks.forEach((b, i) => {
-    const div = document.createElement("div");
-    div.className = "block hunt-block";
-    div.style.background =
-  BLOCK_COLORS[b.type] || "#444";
-    div.style.cursor = "pointer";
-    div.innerHTML = `
-      <div>${BLOCK_NAMES[b.type]}</div>
-      <div class="hp-bar">
-        <div class="hp-fill" style="width:${(b.hp / b.maxHp) * 100}%"></div>
-      </div>
-      <div>${b.hp} / ${b.maxHp}</div>
-    `;
-
-    div.onclick = () => {
-      huntSelectedIndex = i;
-      document.getElementById("hunt-mine-btn").disabled = false;
-
-      document.querySelectorAll("#hunt-grid .block").forEach(el =>
-        el.style.outline = "none"
-      );
-      div.style.outline = "2px solid var(--accent)";
-    };
-
-    grid.appendChild(div);
-
-    if (huntSelectedIndex !== null && i === huntSelectedIndex) {
-  div.style.outline = "2px solid var(--accent)";
-    }
-  });
 }
 
 function renderChannelTask(isDone) {
