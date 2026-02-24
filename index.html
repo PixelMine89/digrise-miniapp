@@ -1018,6 +1018,26 @@ async function loadWorld() {
   worldData = data.revealed;
   towersData = data.towers;
 
+  // Размеры холста
+  const canvasWidth = canvas.width;
+  const canvasHeight = canvas.height;
+
+  // Количество тайлов по ширине и высоте
+  const mapWidthTiles = worldData.length;
+  const mapHeightTiles = worldData[0].length;
+
+  // Рассчитываем общий размер карты в пикселях
+  const mapWidthPixels = mapWidthTiles * tileSize;
+  const mapHeightPixels = mapHeightTiles * tileSize;
+
+  // Центральные координаты карты
+  const centerMapX = Math.floor(mapWidthPixels / 2); // Центр карты по X
+  const centerMapY = Math.floor(mapHeightPixels / 2); // Центр карты по Y
+
+  // Центруем карту относительно центра холста
+  offsetX = canvasWidth / 2 - centerMapX;
+  offsetY = canvasHeight / 2 - centerMapY;
+
   drawWorld();
 }
 
@@ -1076,7 +1096,6 @@ canvas.addEventListener("touchmove", e => {
 
 canvas.addEventListener("touchend", () => {
   isDragging = false;
-  alert("touchend");
 });
 
 loadPlayer();
