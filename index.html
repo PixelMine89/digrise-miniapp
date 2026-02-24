@@ -1046,6 +1046,8 @@ async function loadWorld() {
   canvas.addEventListener("click", handleCanvasClick);
 }
 
+let selectedTower = null;  // Сохраняем выбранную башню
+
 function handleCanvasClick(e) {
   const mouseX = e.offsetX;
   const mouseY = e.offsetY;
@@ -1056,9 +1058,43 @@ function handleCanvasClick(e) {
     const sy = tower.y * tileSize + offsetY;
 
     if (mouseX >= sx && mouseX <= sx + tileSize && mouseY >= sy && mouseY <= sy + tileSize) {
+      selectedTower = tower; // Сохраняем выбранную башню
       openTowerInfo(tower); // Открываем информацию о башне
     }
   });
+}
+
+function openTowerInfo(tower) {
+  const modal = document.getElementById("tower-info-modal");
+  const title = document.getElementById("tower-info-title");
+  const content = document.getElementById("tower-info-content");
+  const resourceAmountInput = document.getElementById("resource-amount");
+  const contributeBtn = document.getElementById("contribute-resources-btn");
+
+  // Обновляем заголовок с номером башни
+  title.innerText = `Башня #${tower.id}`;
+
+  // Если башня завершена
+  if (tower.completed) {
+    content.innerHTML = `
+      <p>Эта башня полностью достроена!</p>
+      <p>Вложено ресурсов: ${tower.current}</p>
+    `;
+    contributeBtn.style.display = "none"; // Скрываем кнопку вложения ресурсов
+  } else {
+    content.innerHTML = `
+      <p>Вложено ресурсов: ${tower.current} из ${tower.required}</p>
+    `;
+    contributeBtn.style.display = "block"; // Показываем кнопку вложения ресурсов
+  }
+
+  // Показываем модальное окно
+  modal.style.display = "flex";
+}
+
+function closeTowerInfo() {
+  document.getElementById("tower-info-modal").style.display = "none";
+  selectedTower = null;  // Сбрасываем выбранную башню при закрытии окна
 }
 
 async function updateWorld() {
@@ -1101,38 +1137,6 @@ function drawWorld() {
     ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
     ctx.fillRect(sx, sy, tileSize, tileSize);
   });
-}
-
-function openTowerInfo(tower) {
-  const modal = document.getElementById("tower-info-modal");
-  const title = document.getElementById("tower-info-title");
-  const content = document.getElementById("tower-info-content");
-  const resourceAmountInput = document.getElementById("resource-amount");
-  const contributeBtn = document.getElementById("contribute-resources-btn");
-
-  // Обновляем заголовок с номером башни
-  title.innerText = `Башня #${tower.id}`;
-
-  // Если башня завершена
-  if (tower.completed) {
-    content.innerHTML = `
-      <p>Эта башня полностью достроена!</p>
-      <p>Вложено ресурсов: ${tower.current}</p>
-    `;
-    contributeBtn.style.display = "none"; // Скрываем кнопку вложения ресурсов
-  } else {
-    content.innerHTML = `
-      <p>Вложено ресурсов: ${tower.current} из ${tower.required}</p>
-    `;
-    contributeBtn.style.display = "block"; // Показываем кнопку вложения ресурсов
-  }
-
-  // Показываем модальное окно
-  modal.style.display = "flex";
-}
-
-function closeTowerInfo() {
-  document.getElementById("tower-info-modal").style.display = "none";
 }
 
 async function contributeResources() {
