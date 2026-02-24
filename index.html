@@ -1049,7 +1049,6 @@ async function loadWorld() {
 let selectedTower = null;  // Сохраняем выбранную башню
 
 function handleCanvasClick(e) {
-  alert("Жирный амогус");
   const mouseX = e.offsetX;
   const mouseY = e.offsetY;
 
@@ -1066,7 +1065,6 @@ function handleCanvasClick(e) {
 }
 
 function openTowerInfo(tower) {
-  alert("Маленький амогус");
   const modal = document.getElementById("tower-info-modal");
   const title = document.getElementById("tower-info-title");
   const content = document.getElementById("tower-info-content");
@@ -1142,7 +1140,6 @@ function drawWorld() {
 }
 
 async function contributeResources() {
-  alert("Опасный амогус");
   const amount = parseInt(document.getElementById("resource-amount").value);
   if (isNaN(amount) || amount <= 0) {
     alert("Введите количество ресурсов для вложения.");
