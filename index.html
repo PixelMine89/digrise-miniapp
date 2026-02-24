@@ -1058,21 +1058,21 @@ const canvas = document.getElementById("worldCanvas");
 
 canvas.addEventListener("touchstart", e => {
   isDragging = true;
-  lastX = e.clientX;
-  lastY = e.clientY;
-});
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
+}, { passive: false });
 
 canvas.addEventListener("touchmove", e => {
   if (!isDragging) return;
 
-  offsetX += e.clientX - lastX;
-  offsetY += e.clientY - lastY;
+  offsetX += e.touches[0].clientX - lastX;
+  offsetY += e.touches[0].clientY - lastY;
 
-  lastX = e.clientX;
-  lastY = e.clientY;
+  lastX = e.touches[0].clientX;
+  lastY = e.touches[0].clientY;
 
   drawWorld();
-});
+}, { passive: false });
 
 canvas.addEventListener("touchend", () => {
   isDragging = false;
