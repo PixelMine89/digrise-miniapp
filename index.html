@@ -1041,34 +1041,33 @@ async function loadWorld() {
   drawWorld();
 }
 
+// Обновлённый drawWorld для фронтенда
 function drawWorld() {
-
   const canvas = document.getElementById("worldCanvas");
   const ctx = canvas.getContext("2d");
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let x = 0; x < worldData.length; x++) {
     for (let y = 0; y < worldData[x].length; y++) {
-
       const screenX = x * tileSize + offsetX;
       const screenY = y * tileSize + offsetY;
 
       if (worldData[x][y]) {
-        ctx.fillStyle = "#1c2236";
+        ctx.fillStyle = "#1c2236"; // Открытая зона
       } else {
-        ctx.fillStyle = "#05070c";
+        ctx.fillStyle = "#05070c"; // Туман
       }
 
-      ctx.fillRect(screenX, screenY, tileSize-1, tileSize-1);
+      ctx.fillRect(screenX, screenY, tileSize - 1, tileSize - 1);
     }
   }
 
   towersData.forEach(t => {
-
     const sx = t.x * tileSize + offsetX;
     const sy = t.y * tileSize + offsetY;
 
+    // Если башня завершена, окрашиваем её в зелёный
     ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
     ctx.fillRect(sx, sy, tileSize, tileSize);
   });
