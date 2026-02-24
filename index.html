@@ -1056,13 +1056,13 @@ function drawWorld() {
 
 const canvas = document.getElementById("worldCanvas");
 
-canvas.addEventListener("mousedown", e => {
+canvas.addEventListener("touchstart", e => {
   isDragging = true;
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
-canvas.addEventListener("mousemove", e => {
+canvas.addEventListener("touchmove", e => {
   if (!isDragging) return;
 
   offsetX += e.clientX - lastX;
@@ -1074,8 +1074,9 @@ canvas.addEventListener("mousemove", e => {
   drawWorld();
 });
 
-canvas.addEventListener("mouseup", () => {
+canvas.addEventListener("touchend", () => {
   isDragging = false;
+  alert("touchend");
 });
 
 loadPlayer();
