@@ -1022,7 +1022,7 @@ let lastY = 0;
 const tileSize = 50;
 
 async function loadWorld() {
-
+async function loadWorld() {
   const res = await fetch(`${API_URL}/world`);
   const data = await res.json();
 
@@ -1030,26 +1030,36 @@ async function loadWorld() {
   towersData = data.towers;
 
   // Размеры холста
-  const canvasWidth = canvas.width;
-  const canvasHeight = canvas.height;
+  const canvasWidth = document.getElementById("worldCanvas").width;
+  const canvasHeight = document.getElementById("worldCanvas").height;
 
-  // Количество тайлов по ширине и высоте
-  const mapWidthTiles = worldData.length;
-  const mapHeightTiles = worldData[0].length;
+  // Центрируем карту относительно холста
+  const centerMapX = Math.floor(worldData.length * tileSize / 2); 
+  const centerMapY = Math.floor(worldData[0].length * tileSize / 2);
 
-  // Рассчитываем общий размер карты в пикселях
-  const mapWidthPixels = mapWidthTiles * tileSize;
-  const mapHeightPixels = mapHeightTiles * tileSize;
-
-  // Центральные координаты карты
-  const centerMapX = Math.floor(mapWidthPixels / 2); // Центр карты по X
-  const centerMapY = Math.floor(mapHeightPixels / 2); // Центр карты по Y
-
-  // Центруем карту относительно центра холста
   offsetX = canvasWidth / 2 - centerMapX;
   offsetY = canvasHeight / 2 - centerMapY;
 
   drawWorld();
+
+  // Добавляем обработчик кликов только один раз
+  const canvas = document.getElementById("worldCanvas");
+  canvas.addEventListener("click", handleCanvasClick);
+}
+
+function handleCanvasClick(e) {
+  const mouseX = e.offsetX;
+  const mouseY = e.offsetY;
+
+  // Пробегаем по всем башням и проверяем, была ли нажата какая-то из них
+  towersData.forEach(tower => {
+    const sx = tower.x * tileSize + offsetX;
+    const sy = tower.y * tileSize + offsetY;
+
+    if (mouseX >= sx && mouseX <= sx + tileSize && mouseY >= sy && mouseY <= sy + tileSize) {
+      openTowerInfo(tower); // Открываем информацию о башне
+    }
+  });
 }
 
 async function updateWorld() {
@@ -1091,17 +1101,6 @@ function drawWorld() {
     // Если башня завершена, окрашиваем её в зелёный
     ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
     ctx.fillRect(sx, sy, tileSize, tileSize);
-
-    // Добавляем обработчик клика для открытия модального окна
-    canvas.addEventListener("click", (e) => {
-      const mouseX = e.offsetX;
-      const mouseY = e.offsetY;
-
-      // Проверяем, попал ли клик в область башни
-      if (mouseX >= sx && mouseX <= sx + tileSize && mouseY >= sy && mouseY <= sy + tileSize) {
-        openTowerInfo(t); // Открываем модальное окно с информацией о башне
-      }
-    });
   });
 }
 
