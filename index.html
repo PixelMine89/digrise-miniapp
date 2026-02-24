@@ -541,6 +541,16 @@ button:disabled {
       <button onclick="closeMineInfo()">Закрыть</button>
     </div>
   </div>
+  <!-- Модальное окно для информации о башне -->
+<div id="tower-info-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+  <div class="box" style="max-width: 340px; width: 90%; max-height: 70vh; display: flex; flex-direction: column;">
+    <h3 id="tower-info-title" style="text-align:center;">Информация о башне</h3>
+    <div id="tower-info-content" style="overflow-y: auto; font-size: 12px; color: var(--muted); margin: 12px 0; line-height: 1.5;"></div>
+    <input type="number" id="resource-amount" placeholder="Количество ресурсов" style="padding: 10px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 10px;"/>
+    <button id="contribute-resources-btn" onclick="contributeResources()" style="padding: 12px; font-weight: 700; background: var(--accent); border: none; border-radius: 14px;">Вложить ресурсы</button>
+    <button onclick="closeTowerInfo()" style="padding: 12px; font-weight: 700; background: #f5c77a; border: none; border-radius: 14px; margin-top: 12px;">Закрыть</button>
+  </div>
+</div>
   <!-- ===== NAV ===== -->
   <div class="nav-wrapper">
     <div class="nav">
@@ -643,6 +653,7 @@ async function loadPlayerDataOnly() {
   const player = await res.json();
   renderPlayer(player);
   loadPool();
+  updateWorld();
 }
 
 function openMineInfo() {
@@ -1041,6 +1052,16 @@ async function loadWorld() {
   drawWorld();
 }
 
+async function updateWorld() {
+  const res = await fetch(`${API_URL}/world`);
+  const data = await res.json();
+
+  worldData = data.revealed;
+  towersData = data.towers;
+  
+  drawWorld();
+}
+
 // Обновлённый drawWorld для фронтенда
 function drawWorld() {
   const canvas = document.getElementById("worldCanvas");
@@ -1070,7 +1091,80 @@ function drawWorld() {
     // Если башня завершена, окрашиваем её в зелёный
     ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
     ctx.fillRect(sx, sy, tileSize, tileSize);
+
+    // Добавляем обработчик клика для открытия модального окна
+    canvas.addEventListener("click", (e) => {
+      const mouseX = e.offsetX;
+      const mouseY = e.offsetY;
+
+      // Проверяем, попал ли клик в область башни
+      if (mouseX >= sx && mouseX <= sx + tileSize && mouseY >= sy && mouseY <= sy + tileSize) {
+        openTowerInfo(t); // Открываем модальное окно с информацией о башне
+      }
+    });
   });
+}
+
+function openTowerInfo(tower) {
+  const modal = document.getElementById("tower-info-modal");
+  const title = document.getElementById("tower-info-title");
+  const content = document.getElementById("tower-info-content");
+  const resourceAmountInput = document.getElementById("resource-amount");
+  const contributeBtn = document.getElementById("contribute-resources-btn");
+
+  // Обновляем заголовок с номером башни
+  title.innerText = `Башня #${tower.id}`;
+
+  // Если башня завершена
+  if (tower.completed) {
+    content.innerHTML = `
+      <p>Эта башня полностью достроена!</p>
+      <p>Вложено ресурсов: ${tower.current}</p>
+    `;
+    contributeBtn.style.display = "none"; // Скрываем кнопку вложения ресурсов
+  } else {
+    content.innerHTML = `
+      <p>Вложено ресурсов: ${tower.current} из ${tower.required}</p>
+    `;
+    contributeBtn.style.display = "block"; // Показываем кнопку вложения ресурсов
+  }
+
+  // Показываем модальное окно
+  modal.style.display = "flex";
+}
+
+function closeTowerInfo() {
+  document.getElementById("tower-info-modal").style.display = "none";
+}
+
+async function contributeResources() {
+  const amount = parseInt(document.getElementById("resource-amount").value);
+  if (isNaN(amount) || amount <= 0) {
+    alert("Введите количество ресурсов для вложения.");
+    return;
+  }
+
+  const towerId = selectedTower.id; // selectedTower — это объект с данными о выбранной башне
+  const res = await fetch(`${API_URL}/tower/contribute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: currentUserId,
+      tower_id: towerId,
+      amount
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  alert("Ресурсы успешно вложены!");
+  updateWorld(); // Обновляем мир после внесения изменений
+  closeTowerInfo(); // Закрываем модальное окно
 }
 
 const canvas = document.getElementById("worldCanvas");
