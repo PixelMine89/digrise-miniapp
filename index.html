@@ -345,7 +345,9 @@ button:disabled {
   <!-- ===== MINE ===== -->
   <div id="tab-mine" class="tab">
     <div class="info-btn" onclick="openMineInfo()">i</div>
-    <!-- тут будет карта с шахтами и т.д. -->
+    <canvas id="worldCanvas" width="800" height="800"
+      style="width:100%; background:#0f1424; border-radius:16px;">
+    </canvas>
   </div>
   
   <!-- ===== CRAFT (Печь + Экип) ===== -->
@@ -630,8 +632,8 @@ async function loadPlayer() {
 
   playerInterval = setInterval(loadPlayerDataOnly, 2000);
 
-  // 🔥 ВАЖНО: сразу открываем шахту
   showTab("mine");
+  loadWorld();
 }
 
 async function loadPlayerDataOnly() {
@@ -996,6 +998,85 @@ async function withdrawTon() {
   alert("Заявка создана");
   loadPlayer();
 }
+
+let worldData = null;
+let towersData = null;
+
+let offsetX = 0;
+let offsetY = 0;
+let isDragging = false;
+let lastX = 0;
+let lastY = 0;
+
+const tileSize = 20;
+
+async function loadWorld() {
+
+  const res = await fetch(`${API_URL}/world`);
+  const data = await res.json();
+
+  worldData = data.revealed;
+  towersData = data.towers;
+
+  drawWorld();
+}
+
+function drawWorld() {
+
+  const canvas = document.getElementById("worldCanvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  for (let x = 0; x < worldData.length; x++) {
+    for (let y = 0; y < worldData[x].length; y++) {
+
+      const screenX = x * tileSize + offsetX;
+      const screenY = y * tileSize + offsetY;
+
+      if (worldData[x][y]) {
+        ctx.fillStyle = "#1c2236";
+      } else {
+        ctx.fillStyle = "#05070c";
+      }
+
+      ctx.fillRect(screenX, screenY, tileSize-1, tileSize-1);
+    }
+  }
+
+  towersData.forEach(t => {
+
+    const sx = t.x * tileSize + offsetX;
+    const sy = t.y * tileSize + offsetY;
+
+    ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
+    ctx.fillRect(sx, sy, tileSize, tileSize);
+  });
+}
+
+const canvas = document.getElementById("worldCanvas");
+
+canvas.addEventListener("mousedown", e => {
+  isDragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!isDragging) return;
+
+  offsetX += e.clientX - lastX;
+  offsetY += e.clientY - lastY;
+
+  lastX = e.clientX;
+  lastY = e.clientY;
+
+  drawWorld();
+});
+
+canvas.addEventListener("mouseup", () => {
+  isDragging = false;
+});
 
 loadPlayer();
 
