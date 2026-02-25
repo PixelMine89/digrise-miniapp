@@ -556,7 +556,7 @@ button:disabled {
     <div class="nav">
       <div class="nav-btn active" onclick="showTab('mine')">
         <img src="icon-home.png">
-        <div>Шахта</div>
+        <div>Карта</div>
       </div>
 
       <div class="nav-btn" onclick="showTab('craft')">
@@ -1209,59 +1209,84 @@ function drawWorld() {
     ctx.fill();
   }
 
-  function drawLog(ctx, cx, cy, angle, length, seed) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-
-    const w = length * 0.18;
-
-    // Тень под бревном
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.beginPath();
-    ctx.ellipse(length * 0.1, w * 0.5, length * 0.52, w * 0.35, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Тело бревна
-    const logGrad = ctx.createLinearGradient(-length / 2, -w, -length / 2, w);
-    logGrad.addColorStop(0, "#8b5e3c");
-    logGrad.addColorStop(0.4, "#a0713f");
-    logGrad.addColorStop(1, "#5c3820");
-    ctx.fillStyle = logGrad;
-    ctx.beginPath();
-    ctx.roundRect(-length / 2, -w, length, w * 2, w * 0.6);
-    ctx.fill();
-
-    // Торец слева
-    ctx.fillStyle = "#c8956a";
-    ctx.beginPath();
-    ctx.ellipse(-length / 2, 0, w * 0.55, w, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#7a4a28";
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-
-    // Годовые кольца
-    ctx.strokeStyle = "rgba(90,50,20,0.5)";
-    ctx.lineWidth = 0.6;
-    for (let r = 1; r <= 3; r++) {
+  function drawLog(ctx, cx, cy, variant) {
+  // variant: 0 = одно большое, 1 = одно маленькое, 2 = два брёвна стопкой
+    function singleLog(lx, ly, length, thickness) {
+      // Тень под бревном
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
       ctx.beginPath();
-      ctx.ellipse(-length / 2, 0, w * 0.15 * r, w * 0.28 * r, 0, 0, Math.PI * 2);
+      ctx.ellipse(lx + length * 0.05, ly + thickness * 0.7, length * 0.5, thickness * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Тело бревна (горизонтально)
+      const logGrad = ctx.createLinearGradient(lx - length / 2, ly - thickness, lx - length / 2, ly + thickness);
+      logGrad.addColorStop(0, "#a07840");
+      logGrad.addColorStop(0.35, "#b8905a");
+      logGrad.addColorStop(1, "#5c3820");
+      ctx.fillStyle = logGrad;
+      ctx.beginPath();
+      ctx.roundRect(lx - length / 2, ly - thickness, length, thickness * 2, thickness * 0.55);
+      ctx.fill();
+
+      // Полосы коры
+      ctx.strokeStyle = "rgba(50,25,10,0.28)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const kx = lx - length / 2 + length * (0.1 + i * 0.18);
+        ctx.beginPath();
+        ctx.moveTo(kx, ly - thickness * 0.85);
+        ctx.quadraticCurveTo(kx + 3, ly, kx, ly + thickness * 0.85);
+        ctx.stroke();
+      }
+
+      // Левый торец
+      const endGrad = ctx.createRadialGradient(
+        lx - length / 2 - 1, ly - thickness * 0.2, 1,
+        lx - length / 2, ly, thickness
+      );
+      endGrad.addColorStop(0, "#e8b87a");
+      endGrad.addColorStop(0.5, "#c8956a");
+      endGrad.addColorStop(1, "#7a4a28");
+      ctx.fillStyle = endGrad;
+      ctx.beginPath();
+      ctx.ellipse(lx - length / 2, ly, thickness * 0.5, thickness, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#6a3a18";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      // Годовые кольца на торце
+      ctx.strokeStyle = "rgba(90,50,20,0.45)";
+      ctx.lineWidth = 0.7;
+      for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.ellipse(lx - length / 2, ly, thickness * 0.13 * r, thickness * 0.27 * r, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Правый торец
+      ctx.fillStyle = endGrad;
+      ctx.beginPath();
+      ctx.ellipse(lx + length / 2, ly, thickness * 0.5, thickness, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#6a3a18";
+      ctx.lineWidth = 0.8;
       ctx.stroke();
     }
 
-    // Полоски коры
-    ctx.strokeStyle = "rgba(50,25,10,0.3)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 4; i++) {
-      const lx = -length / 2 + length * (0.15 + i * 0.2) + seed * 5;
-      ctx.beginPath();
-      ctx.moveTo(lx, -w * 0.8);
-      ctx.quadraticCurveTo(lx + 4, 0, lx, w * 0.8);
-      ctx.stroke();
-    }
+    if (variant === 0) {
+      // Одно большое бревно по центру
+      singleLog(cx, cy + 6, tileSize * 0.75, tileSize * 0.1);
 
-    ctx.restore();
+    } else if (variant === 1) {
+      // Одно маленькое, чуть смещено
+      singleLog(cx - 2, cy + 8, tileSize * 0.48, tileSize * 0.075);
+
+    } else {
+      // Два брёвна стопкой (нижнее чуть длиннее)
+      singleLog(cx, cy + 10, tileSize * 0.72, tileSize * 0.088);
+      singleLog(cx - 3, cy + 1, tileSize * 0.58, tileSize * 0.082);
+    }
   }
 
   function drawHouse(ctx, cx, cy, size) {
@@ -1456,9 +1481,9 @@ function drawWorld() {
           drawBoulder(ctx, cx, cy + 4, tileSize * 0.22, s1, s2);
 
         } else if (decor < 0.24) {
-          // Бревно
-          const angle = seededRandom(x + 200, y + 200) * Math.PI;
-          drawLog(ctx, cx, cy + 6, angle, tileSize * 0.72, seededRandom(x, y + 600));
+          // Бревно — 3 варианта
+          const logVariant = Math.floor(seededRandom(x + 200, y + 200) * 3); // 0, 1 или 2
+          drawLog(ctx, cx, cy, logVariant);
 
         } else if (decor < 0.27) {
           // Домик — редкий объект (~3%)
