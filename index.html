@@ -1187,23 +1187,125 @@ function drawWorld() {
         }
 
       } else {
-        // ===== ЗАКРЫТАЯ ЗОНА — туман =====
-
-        // Тёмная подложка
+        // Тёмная подложка — просто глухой фон
         ctx.fillStyle = "#090c14";
-        ctx.fillRect(sx, sy, tileSize - 1, tileSize - 1);
-
-        // Белый туман — радиальный градиент на каждый тайл
-        const fogX = sx + tileSize / 2;
-        const fogY = sy + tileSize / 2;
-        const fogGrad = ctx.createRadialGradient(fogX, fogY, 0, fogX, fogY, tileSize);
-        const intensity = 0.15 + seededRandom(x + 500, y + 500) * 0.12;
-        fogGrad.addColorStop(0, `rgba(210, 220, 255, ${intensity})`);
-        fogGrad.addColorStop(1, `rgba(160, 175, 220, 0.02)`);
-        ctx.fillStyle = fogGrad;
         ctx.fillRect(sx, sy, tileSize - 1, tileSize - 1);
       }
     }
+  }
+
+  // ===== FOG PASS — густой объёмный туман поверх закрытых тайлов =====
+  // Сначала рисуем глухой базовый слой поверх всех закрытых тайлов
+  for (let x = 0; x < worldData.length; x++) {
+    for (let y = 0; y < worldData[x].length; y++) {
+      if (worldData[x][y]) continue;
+
+      const sx = x * tileSize + offsetX;
+      const sy = y * tileSize + offsetY;
+      if (sx + tileSize < 0 || sx > canvas.width ||
+          sy + tileSize < 0 || sy > canvas.height) continue;
+
+      // Полностью непрозрачная тёмно-синяя заливка
+      ctx.fillStyle = "#0d1120";
+      ctx.fillRect(sx, sy, tileSize, tileSize);
+    }
+  }
+
+  // Теперь рисуем облачные блобы только там где есть закрытые тайлы
+  // Каждый тайл получает несколько крупных перекрывающихся блобов
+  for (let x = 0; x < worldData.length; x++) {
+    for (let y = 0; y < worldData[x].length; y++) {
+      if (worldData[x][y]) continue;
+
+      const sx = x * tileSize + offsetX;
+      const sy = y * tileSize + offsetY;
+      if (sx + tileSize < -tileSize || sx > canvas.width + tileSize ||
+          sy + tileSize < -tileSize || sy > canvas.height + tileSize) continue;
+
+      const cx = sx + tileSize / 2;
+      const cy = sy + tileSize / 2;
+
+      // Рисуем 5 блобов на тайл — крупные, неровные, выступающие за края
+      const blobCount = 5;
+      for (let i = 0; i < blobCount; i++) {
+        const r1 = seededRandom(x * 13 + i * 7, y * 17 + i * 3);
+        const r2 = seededRandom(x * 11 + i * 5, y * 23 + i * 9);
+        const r3 = seededRandom(x * 19 + i * 11, y * 7 + i * 13);
+        const r4 = seededRandom(x * 7 + i * 17, y * 13 + i * 11);
+
+        // Центр блоба смещён случайно — выходит за границы тайла
+        const bx = cx + (r1 - 0.5) * tileSize * 1.4;
+        const by = cy + (r2 - 0.5) * tileSize * 1.4;
+
+        // Радиус крупный — перекрывает соседей
+        const radius = tileSize * (0.7 + r3 * 0.8);
+
+        const grad = ctx.createRadialGradient(bx, by, 0, bx, by, radius);
+
+        // Белые плотные облака, тёмные края
+        const alpha1 = 0.55 + r4 * 0.35; // центр — почти непрозрачный
+        const alpha2 = 0.15 + r3 * 0.1;
+        const alpha3 = 0.0;
+
+        // Цвет: тёплый белый/голубоватый как в Civ
+        const whiteR = Math.floor(215 + r1 * 30);
+        const whiteG = Math.floor(218 + r2 * 25);
+        const whiteB = Math.floor(235 + r3 * 20);
+
+        grad.addColorStop(0,   `rgba(${whiteR}, ${whiteG}, ${whiteB}, ${alpha1.toFixed(2)})`);
+        grad.addColorStop(0.4, `rgba(${whiteR-10}, ${whiteG-10}, ${whiteB}, ${alpha2.toFixed(2)})`);
+        grad.addColorStop(1,   `rgba(${whiteR-20}, ${whiteG-15}, ${whiteB}, ${alpha3})`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        // Эллипс вместо круга — неровность формы
+        const rx = radius * (0.8 + r4 * 0.5);
+        const ry = radius * (0.6 + r1 * 0.5);
+        const angle = r2 * Math.PI;
+        ctx.ellipse(bx, by, rx, ry, angle, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // Финальный проход: дополнительный слой крупных "шапок" облаков
+  // Рисуем один большой блоб на каждый 2x2 участок тумана для объёма
+  for (let x = 0; x < worldData.length - 1; x += 2) {
+    for (let y = 0; y < worldData[x].length - 1; y += 2) {
+      // Рисуем большой блоб только если хотя бы 2 из 4 тайлов закрыты
+      const closed = [
+        !worldData[x][y], !worldData[x+1]?.[y],
+        !worldData[x]?.[y+1], !worldData[x+1]?.[y+1]
+      ].filter(Boolean).length;
+
+      if (closed < 2) continue;
+
+      const sx = x * tileSize + offsetX;
+      const sy = y * tileSize + offsetY;
+      if (sx + tileSize * 2 < -tileSize * 2 || sx > canvas.width + tileSize * 2 ||
+          sy + tileSize * 2 < -tileSize * 2 || sy > canvas.height + tileSize * 2) continue;
+
+      const cx = sx + tileSize + (seededRandom(x * 31, y * 29) - 0.5) * tileSize;
+      const cy = sy + tileSize + (seededRandom(x * 29, y * 31) - 0.5) * tileSize;
+
+      const r1 = seededRandom(x * 41, y * 37);
+      const r2 = seededRandom(x * 37, y * 41);
+      const radius = tileSize * (1.2 + r1 * 0.9);
+
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      grad.addColorStop(0,   `rgba(235, 238, 255, ${(0.45 + r2 * 0.2).toFixed(2)})`);
+      grad.addColorStop(0.5, `rgba(210, 215, 245, 0.12)`);
+      grad.addColorStop(1,   `rgba(190, 200, 235, 0.0)`);
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy,
+        radius * (0.9 + r1 * 0.3),
+        radius * (0.6 + r2 * 0.3),
+        r1 * Math.PI, 0, Math.PI * 2
+      );
+      ctx.fill();
+    }   
   }
 
   // ===== БАШНИ поверх карты =====
