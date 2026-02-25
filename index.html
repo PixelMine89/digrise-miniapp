@@ -1209,84 +1209,97 @@ function drawWorld() {
     ctx.fill();
   }
 
-  function drawLog(ctx, cx, cy, variant) {
-  // variant: 0 = одно большое, 1 = одно маленькое, 2 = два брёвна стопкой
-    function singleLog(lx, ly, length, thickness) {
-      // Тень под бревном
-      ctx.fillStyle = "rgba(0,0,0,0.22)";
+  function drawLog(ctx, sx, sy, seed1, seed2) {
+    // Два варианта: маленькое и большое
+    const isLarge = seededRandom(seed1 + 1, seed2 + 1) > 0.5;
+    const length = isLarge ? tileSize * 0.82 : tileSize * 0.5;
+    const r = isLarge ? tileSize * 0.095 : tileSize * 0.07; // радиус сечения
+
+    // Позиция: центр бревна чуть ниже центра тайла
+    const cx = sx + tileSize * 0.5;
+    const cy = sy + tileSize * 0.62;
+
+    const x1 = cx - length / 2; // левый край
+    const x2 = cx + length / 2; // правый край
+
+    // Тень под бревном
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + r * 0.9, length * 0.48, r * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Тело бревна (верхняя грань — трапеция для перспективы)
+    const bodyGrad = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+    bodyGrad.addColorStop(0, "#a0713f");  // светлый верх
+    bodyGrad.addColorStop(0.45, "#8b5e30");
+    bodyGrad.addColorStop(1, "#4a2e10");  // тёмный низ
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    // Верхняя линия
+    ctx.moveTo(x1 + r * 0.3, cy - r * 0.85);
+    ctx.lineTo(x2 - r * 0.3, cy - r * 0.85);
+    // Правый дальний торец (верх)
+    ctx.quadraticCurveTo(x2 + r * 0.1, cy - r * 0.5, x2 + r * 0.1, cy);
+    ctx.quadraticCurveTo(x2 + r * 0.1, cy + r * 0.5, x2 - r * 0.3, cy + r * 0.85);
+    // Нижняя линия
+    ctx.lineTo(x1 + r * 0.3, cy + r * 0.85);
+    // Левый ближний торец (низ → верх)
+    ctx.quadraticCurveTo(x1 - r * 0.1, cy + r * 0.5, x1 - r * 0.1, cy);
+    ctx.quadraticCurveTo(x1 - r * 0.1, cy - r * 0.5, x1 + r * 0.3, cy - r * 0.85);
+    ctx.closePath();
+    ctx.fill();
+
+    // Полосы коры
+    ctx.strokeStyle = "rgba(40,20,5,0.28)";
+    ctx.lineWidth = 0.8;
+    const stripes = isLarge ? 5 : 3;
+    for (let i = 1; i < stripes; i++) {
+      const lx = x1 + (length / stripes) * i;
       ctx.beginPath();
-      ctx.ellipse(lx + length * 0.05, ly + thickness * 0.7, length * 0.5, thickness * 0.28, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Тело бревна (горизонтально)
-      const logGrad = ctx.createLinearGradient(lx - length / 2, ly - thickness, lx - length / 2, ly + thickness);
-      logGrad.addColorStop(0, "#a07840");
-      logGrad.addColorStop(0.35, "#b8905a");
-      logGrad.addColorStop(1, "#5c3820");
-      ctx.fillStyle = logGrad;
-      ctx.beginPath();
-      ctx.roundRect(lx - length / 2, ly - thickness, length, thickness * 2, thickness * 0.55);
-      ctx.fill();
-
-      // Полосы коры
-      ctx.strokeStyle = "rgba(50,25,10,0.28)";
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 5; i++) {
-        const kx = lx - length / 2 + length * (0.1 + i * 0.18);
-        ctx.beginPath();
-        ctx.moveTo(kx, ly - thickness * 0.85);
-        ctx.quadraticCurveTo(kx + 3, ly, kx, ly + thickness * 0.85);
-        ctx.stroke();
-      }
-
-      // Левый торец
-      const endGrad = ctx.createRadialGradient(
-        lx - length / 2 - 1, ly - thickness * 0.2, 1,
-        lx - length / 2, ly, thickness
-      );
-      endGrad.addColorStop(0, "#e8b87a");
-      endGrad.addColorStop(0.5, "#c8956a");
-      endGrad.addColorStop(1, "#7a4a28");
-      ctx.fillStyle = endGrad;
-      ctx.beginPath();
-      ctx.ellipse(lx - length / 2, ly, thickness * 0.5, thickness, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#6a3a18";
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-
-      // Годовые кольца на торце
-      ctx.strokeStyle = "rgba(90,50,20,0.45)";
-      ctx.lineWidth = 0.7;
-      for (let r = 1; r <= 3; r++) {
-        ctx.beginPath();
-        ctx.ellipse(lx - length / 2, ly, thickness * 0.13 * r, thickness * 0.27 * r, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // Правый торец
-      ctx.fillStyle = endGrad;
-      ctx.beginPath();
-      ctx.ellipse(lx + length / 2, ly, thickness * 0.5, thickness, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#6a3a18";
-      ctx.lineWidth = 0.8;
+      ctx.moveTo(lx, cy - r * 0.8);
+      ctx.quadraticCurveTo(lx + 2, cy, lx, cy + r * 0.8);
       ctx.stroke();
     }
 
-    if (variant === 0) {
-      // Одно большое бревно по центру
-      singleLog(cx, cy + 6, tileSize * 0.75, tileSize * 0.1);
+    // Блик сверху
+    const hlGrad = ctx.createLinearGradient(x1, cy - r, x2, cy - r);
+    hlGrad.addColorStop(0, "rgba(255,220,160,0)");
+    hlGrad.addColorStop(0.3, "rgba(255,220,160,0.22)");
+    hlGrad.addColorStop(0.7, "rgba(255,220,160,0.22)");
+    hlGrad.addColorStop(1, "rgba(255,220,160,0)");
+    ctx.fillStyle = hlGrad;
+    ctx.fillRect(x1, cy - r * 0.85, length, r * 0.45);
 
-    } else if (variant === 1) {
-      // Одно маленькое, чуть смещено
-      singleLog(cx - 2, cy + 8, tileSize * 0.48, tileSize * 0.075);
+    // Дальний (правый) торец — тёмный, небольшой
+    ctx.fillStyle = "#3d2008";
+    ctx.beginPath();
+    ctx.ellipse(x2, cy, r * 0.18, r * 0.82, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-    } else {
-      // Два брёвна стопкой (нижнее чуть длиннее)
-      singleLog(cx, cy + 10, tileSize * 0.72, tileSize * 0.088);
-      singleLog(cx - 3, cy + 1, tileSize * 0.58, tileSize * 0.082);
-    }
+    // Ближний (левый) торец — светлый, полностью виден
+    const faceGrad = ctx.createRadialGradient(x1 - r * 0.1, cy - r * 0.15, r * 0.05, x1, cy, r);
+    faceGrad.addColorStop(0, "#d4a46a");
+    faceGrad.addColorStop(0.5, "#a8723a");
+    faceGrad.addColorStop(1, "#5c3010");
+    ctx.fillStyle = faceGrad;
+    ctx.beginPath();
+    ctx.ellipse(x1, cy, r * 0.22, r, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Годовые кольца на ближнем торце
+    ctx.strokeStyle = "rgba(60,25,5,0.45)";
+    ctx.lineWidth = 0.7;
+    [0.65, 0.38, 0.18].forEach(scale => {
+      ctx.beginPath();
+     ctx.ellipse(x1, cy, r * 0.22 * scale, r * scale, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // Центральная точка сердцевины
+    ctx.fillStyle = "#7a3a10";
+    ctx.beginPath();
+    ctx.ellipse(x1, cy, r * 0.05, r * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function drawHouse(ctx, cx, cy, size) {
@@ -1481,9 +1494,8 @@ function drawWorld() {
           drawBoulder(ctx, cx, cy + 4, tileSize * 0.22, s1, s2);
 
         } else if (decor < 0.24) {
-          // Бревно — 3 варианта
-          const logVariant = Math.floor(seededRandom(x + 200, y + 200) * 3); // 0, 1 или 2
-          drawLog(ctx, cx, cy, logVariant);
+          // Бревно (всегда горизонтально, два варианта размера)
+          drawLog(ctx, sx, sy, x + 200, y + 200);
 
         } else if (decor < 0.27) {
           // Домик — редкий объект (~3%)
