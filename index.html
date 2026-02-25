@@ -1021,6 +1021,20 @@ let lastY = 0;
 
 const tileSize = 50;
 
+let selectedTower = null;  // Сохраняем выбранную башню
+
+// Преднагрузка изображений башен
+const towerImg = new Image();
+towerImg.src = "tower.png";
+const towerDoneImg = new Image();
+towerDoneImg.src = "tower-done.png";
+
+// Псевдослучайное число по координатам (всегда одинаковое для одной клетки)
+function seededRandom(x, y) {
+  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return n - Math.floor(n);
+}
+
 async function loadWorld() {
   const res = await fetch(`${API_URL}/world`);
   const data = await res.json();
@@ -1041,8 +1055,6 @@ async function loadWorld() {
 
   drawWorld();
 }
-
-let selectedTower = null;  // Сохраняем выбранную башню
 
 function handleCanvasClick(e) {
   const mouseX = e.offsetX;
@@ -1110,28 +1122,120 @@ function drawWorld() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Фон под всей картой
+  ctx.fillStyle = "#080b12";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   for (let x = 0; x < worldData.length; x++) {
     for (let y = 0; y < worldData[x].length; y++) {
-      const screenX = x * tileSize + offsetX;
-      const screenY = y * tileSize + offsetY;
+      const sx = x * tileSize + offsetX;
+      const sy = y * tileSize + offsetY;
+
+      // Отсекаем невидимые тайлы
+      if (sx + tileSize < 0 || sx > canvas.width ||
+          sy + tileSize < 0 || sy > canvas.height) continue;
 
       if (worldData[x][y]) {
-        ctx.fillStyle = "#1c2236"; // Открытая зона
-      } else {
-        ctx.fillStyle = "#05070c"; // Туман
-      }
+        // ===== ОТКРЫТАЯ ЗОНА — трава =====
 
-      ctx.fillRect(screenX, screenY, tileSize - 1, tileSize - 1);
+        // Вариация цвета травы (чтобы не было одноцветной сетки)
+        const shade = seededRandom(x, y);
+        const g = Math.floor(70 + shade * 30);
+        const r = Math.floor(20 + shade * 10);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${r + 5})`;
+        ctx.fillRect(sx, sy, tileSize - 1, tileSize - 1);
+
+        // Мелкая текстура — травинки
+        const bladeCount = 4;
+        ctx.strokeStyle = `rgba(${r+10}, ${g+30}, ${r+15}, 0.5)`;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < bladeCount; i++) {
+          const bx = sx + seededRandom(x * 7 + i, y * 3) * (tileSize - 4) + 2;
+          const by = sy + seededRandom(x * 3, y * 7 + i) * (tileSize - 4) + 2;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx + seededRandom(x+i, y+50) * 4 - 2, by - 4 - seededRandom(x+50, y+i) * 4);
+          ctx.stroke();
+        }
+
+        // Декоративные объекты (камни / кусты) — примерно на 15% тайлов
+        const decor = seededRandom(x + 300, y + 300);
+
+        if (decor < 0.06) {
+          // Камень
+          const cx = sx + tileSize * 0.5;
+          const cy = sy + tileSize * 0.5;
+          const grad = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 7);
+          grad.addColorStop(0, "#9aa0b4");
+          grad.addColorStop(1, "#4a5060");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, 7, 5, seededRandom(x,y+400) * Math.PI, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (decor < 0.14) {
+          // Маленький куст
+          for (let i = 0; i < 3; i++) {
+            const bx = sx + seededRandom(x + i * 17, y + 100) * (tileSize - 10) + 5;
+            const by = sy + seededRandom(x + 100, y + i * 17) * (tileSize - 10) + 5;
+            const size = 3 + seededRandom(x + i, y + i + 200) * 3;
+            const green = Math.floor(80 + seededRandom(x + i * 3, y) * 40);
+            ctx.fillStyle = `rgba(20, ${green}, 25, 0.85)`;
+            ctx.beginPath();
+            ctx.arc(bx, by, size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+      } else {
+        // ===== ЗАКРЫТАЯ ЗОНА — туман =====
+
+        // Тёмная подложка
+        ctx.fillStyle = "#090c14";
+        ctx.fillRect(sx, sy, tileSize - 1, tileSize - 1);
+
+        // Белый туман — радиальный градиент на каждый тайл
+        const fogX = sx + tileSize / 2;
+        const fogY = sy + tileSize / 2;
+        const fogGrad = ctx.createRadialGradient(fogX, fogY, 0, fogX, fogY, tileSize);
+        const intensity = 0.15 + seededRandom(x + 500, y + 500) * 0.12;
+        fogGrad.addColorStop(0, `rgba(210, 220, 255, ${intensity})`);
+        fogGrad.addColorStop(1, `rgba(160, 175, 220, 0.02)`);
+        ctx.fillStyle = fogGrad;
+        ctx.fillRect(sx, sy, tileSize - 1, tileSize - 1);
+      }
     }
   }
 
+  // ===== БАШНИ поверх карты =====
   towersData.forEach(t => {
     const sx = t.x * tileSize + offsetX;
     const sy = t.y * tileSize + offsetY;
+    const img = t.completed ? towerDoneImg : towerImg;
 
-    // Если башня завершена, окрашиваем её в зелёный
-    ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
-    ctx.fillRect(sx, sy, tileSize, tileSize);
+    // Лёгкое свечение под башней
+    const glowColor = t.completed ? "rgba(76,217,100,0.3)" : "rgba(245,199,122,0.3)";
+    const glowGrad = ctx.createRadialGradient(
+      sx + tileSize / 2, sy + tileSize / 2, 2,
+      sx + tileSize / 2, sy + tileSize / 2, tileSize
+    );
+    glowGrad.addColorStop(0, glowColor);
+    glowGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(sx - tileSize * 0.5, sy - tileSize * 0.5, tileSize * 2, tileSize * 2);
+
+    // Картинка башни или фолбэк
+    if (img.complete && img.naturalHeight !== 0) {
+      ctx.drawImage(img, sx, sy, tileSize, tileSize);
+    } else {
+      // Фолбэк пока картинка не загружена
+      ctx.fillStyle = t.completed ? "#4cd964" : "#f5c77a";
+      ctx.fillRect(sx + 4, sy + 4, tileSize - 8, tileSize - 8);
+
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 10px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(`#${t.id}`, sx + tileSize / 2, sy + tileSize / 2 + 4);
+    }
   });
 }
 
