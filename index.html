@@ -542,7 +542,7 @@ button:disabled {
     </div>
   </div>
   <!-- Модальное окно для информации о башне -->
-<div id="tower-info-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+<div id="tower-info-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 9999;">
   <div class="box" style="max-width: 340px; width: 90%; max-height: 70vh; display: flex; flex-direction: column;">
     <h3 id="tower-info-title" style="text-align:center;">Информация о башне</h3>
     <div id="tower-info-content" style="overflow-y: auto; font-size: 12px; color: var(--muted); margin: 12px 0; line-height: 1.5;"></div>
@@ -1040,10 +1040,6 @@ async function loadWorld() {
   offsetY = canvasHeight / 2 - centerMapY;
 
   drawWorld();
-
-  // Добавляем обработчик кликов только один раз
-  const canvas = document.getElementById("worldCanvas");
-  canvas.addEventListener("click", handleCanvasClick);
 }
 
 let selectedTower = null;  // Сохраняем выбранную башню
@@ -1171,14 +1167,25 @@ async function contributeResources() {
 
 const canvas = document.getElementById("worldCanvas");
 
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoved = false;
+
 canvas.addEventListener("touchstart", e => {
   isDragging = true;
   lastX = e.touches[0].clientX;
   lastY = e.touches[0].clientY;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchMoved = false;
 }, { passive: false });
 
 canvas.addEventListener("touchmove", e => {
   if (!isDragging) return;
+
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if (Math.abs(dx) > 8 || Math.abs(dy) > 8) touchMoved = true;
 
   offsetX += e.touches[0].clientX - lastX;
   offsetY += e.touches[0].clientY - lastY;
@@ -1189,9 +1196,22 @@ canvas.addEventListener("touchmove", e => {
   drawWorld();
 }, { passive: false });
 
-canvas.addEventListener("touchend", () => {
+canvas.addEventListener("touchend", e => {
   isDragging = false;
-});
+
+  if (!touchMoved) {
+    e.preventDefault(); // блокируем ghost-click от браузера
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const tapX = (touchStartX - rect.left) * scaleX;
+    const tapY = (touchStartY - rect.top) * scaleY;
+    handleCanvasClick({ offsetX: tapX, offsetY: tapY });
+  }
+}, { passive: false }); // passive: false нужен для preventDefault
+
+// для десктопа
+canvas.addEventListener("click", handleCanvasClick);
 
 loadPlayer();
 
