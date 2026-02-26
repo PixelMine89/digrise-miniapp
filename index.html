@@ -2166,10 +2166,12 @@ async function maintainMine() {
 
 async function enterMine() {
   if (!selectedMine) return;
+  const mineToEnter = selectedMine; // сохраняем ДО closeMineModal
+
   const res = await fetch(`${API_URL}/mine/enter`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
+    body: JSON.stringify({ user_id: currentUserId, mine_id: mineToEnter.id })
   });
   const data = await res.json();
 
@@ -2183,8 +2185,8 @@ async function enterMine() {
     return;
   }
 
-  closeMineModal();
-  openMiningModal(selectedMine, data.session, data.mine);
+  closeMineModal(); // теперь порядок не важен — mineToEnter уже сохранён
+  openMiningModal(mineToEnter, data.session, data.mine);
 }
 
 function openMiningModal(mine, session, mineState) {
