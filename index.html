@@ -551,6 +551,118 @@ button:disabled {
     <button onclick="closeTowerInfo()" style="padding: 12px; font-weight: 700; background: #f5c77a; border: none; border-radius: 14px; margin-top: 12px;">Закрыть</button>
   </div>
 </div>
+  <!-- МОДАЛКА ШАХТЫ -->
+<div id="mine-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; z-index:9999;">
+  <div class="box" style="max-width:340px; width:90%; max-height:80vh; display:flex; flex-direction:column; gap:8px;">
+    
+    <h3 id="mine-modal-title" style="text-align:center; margin:0;">Шахта</h3>
+
+    <!-- Статус / состояние -->
+    <div id="mine-modal-status" style="font-size:12px; color:var(--muted);"></div>
+
+    <!-- Полоска состояния -->
+    <div style="background:#1b2032; border-radius:8px; height:10px; overflow:hidden;">
+      <div id="mine-condition-bar" style="height:100%; background:var(--accent); border-radius:8px; transition:width 0.3s;"></div>
+    </div>
+    <div id="mine-condition-label" style="font-size:11px; color:var(--muted); text-align:right;"></div>
+
+    <!-- Ресурсы -->
+    <div id="mine-resources-info" style="font-size:13px;"></div>
+
+    <!-- Владелец -->
+    <div id="mine-owner-info" style="font-size:12px; color:var(--muted);"></div>
+
+    <!-- Кнопки: занять шахту -->
+    <div id="mine-claim-section" style="display:none;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;" id="mine-claim-cost"></div>
+      <button onclick="claimMine()" style="width:100%;">⛏️ Занять шахту</button>
+    </div>
+
+    <!-- Кнопки: обслуживание (для владельца) -->
+    <div id="mine-maintain-section" style="display:none;">
+      <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Обслуживание (1 камень = +0.5 состояния)</div>
+      <div style="display:flex; gap:8px;">
+        <input type="number" id="mine-maintain-amount" placeholder="Камень" style="flex:1; padding:8px; border-radius:10px; border:none; font-size:13px;">
+        <button onclick="maintainMine()" style="padding:8px 14px;">🔧</button>
+      </div>
+    </div>
+
+    <!-- Отказаться от шахты (только владелец) -->
+<button id="mine-abandon-btn" onclick="abandonMine()" style="display:none; width:100%; background:linear-gradient(180deg,#ff6b6b,#cc3333); color:#fff;">
+  🚪 Отказаться от шахты
+</button>
+
+<!-- Реконструкция (только владелец, ресурсы кончились) -->
+<div id="mine-reconstruct-section" style="display:none;">
+  <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Ресурсы исчерпаны. Запустить реконструкцию (3 суток)?</div>
+  <button onclick="startReconstruct()" style="width:100%; background:linear-gradient(180deg,#6a5acd,#483d8b); color:#fff;">
+    🔄 Начать реконструкцию
+  </button>
+</div>
+
+<!-- Статус реконструкции -->
+<div id="mine-reconstruct-status" style="display:none; text-align:center; font-size:13px; color:#9a8aff; padding:8px; background:rgba(100,80,200,0.1); border-radius:10px;"></div>
+
+    <!-- Лицензия: выбор часов -->
+    <div id="mine-license-section" style="display:none;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Купить лицензию (DC):</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;" id="mine-license-btns"></div>
+    </div>
+
+    <!-- Кнопка Войти (если есть доступ) -->
+    <button id="mine-enter-btn" onclick="enterMine()" style="display:none; width:100%; background:linear-gradient(180deg,#4cd964,#2ea84e); color:#fff;">
+      ▶ Войти в шахту
+    </button>
+
+    <!-- Обвал -->
+    <div id="mine-collapsed-info" style="display:none; text-align:center; padding:10px; background:rgba(255,80,80,0.1); border:1px solid rgba(255,80,80,0.3); border-radius:10px; color:#ff6b6b; font-size:13px;"></div>
+
+    <button onclick="closeMineModal()" style="width:100%; background:#333; color:#fff; margin-top:4px;">Закрыть</button>
+  </div>
+</div>
+
+<!-- МОДАЛКА ДОБЫЧИ (интерьер шахты) -->
+<div id="mining-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:10000;">
+  <div class="box" style="max-width:340px; width:90%; display:flex; flex-direction:column; gap:10px;">
+
+    <h3 id="mining-modal-title" style="text-align:center; margin:0;">⛏️ Добыча</h3>
+
+    <!-- Состояние шахты внутри -->
+    <div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:4px;">
+        <span>Состояние шахты</span>
+        <span id="mining-condition-pct"></span>
+      </div>
+      <div style="background:#1b2032; border-radius:8px; height:8px; overflow:hidden;">
+        <div id="mining-condition-bar" style="height:100%; background:var(--accent); border-radius:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Ресурсы -->
+    <div style="font-size:13px;" id="mining-resources-left"></div>
+
+    <!-- Таймер сессии -->
+    <div id="mining-session-block" style="display:none;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Автокопка идёт:</div>
+      <div style="background:#1b2032; border-radius:8px; height:10px; overflow:hidden;">
+        <div id="mining-timer-bar" style="height:100%; background:#4cd964; border-radius:8px; transition:width 1s linear;"></div>
+      </div>
+      <div id="mining-timer-label" style="font-size:13px; font-weight:700; text-align:center; margin-top:6px; color:var(--accent);"></div>
+    </div>
+
+    <!-- Кнопка запустить копку -->
+    <button id="mining-start-btn" onclick="startMining()" style="display:none; width:100%;">
+      ⛏️ Запустить автокопку (1 час)
+    </button>
+
+    <!-- Кнопка собрать -->
+    <button id="mining-collect-btn" onclick="collectResources()" style="display:none; width:100%; background:linear-gradient(180deg,#4cd964,#2ea84e); color:#fff;">
+      🎒 Собрать ресурсы
+    </button>
+
+    <button onclick="closeMiningModal()" style="width:100%; background:#333; color:#fff;">← Выйти из шахты</button>
+  </div>
+</div>
   <!-- ===== NAV ===== -->
   <div class="nav-wrapper">
     <div class="nav">
@@ -1023,6 +1135,34 @@ const tileSize = 75;
 
 let selectedTower = null;  // Сохраняем выбранную башню
 
+let minesData = [];
+let selectedMine = null;
+let miningTimerInterval = null;
+
+const MINE_ICONS = {
+  coal:    { color: '#5a5a5a', label: '🪨 Уголь'   },
+  copper:  { color: '#c87533', label: '🟠 Медь'    },
+  iron:    { color: '#8a8a9a', label: '⚙️ Железо'  },
+  gold:    { color: '#f5c77a', label: '🌕 Золото'   },
+  diamond: { color: '#7fffd4', label: '💎 Алмаз'   }
+};
+
+const MINE_CLAIM_COST = {
+  coal:    { stone: 200 },
+  copper:  { stone: 400 },
+  iron:    { stone: 600 },
+  gold:    { stone: 1000 },
+  diamond: { stone: 2000 }
+};
+
+const MINE_LICENSE_PRICE = {
+  coal:    { 3: 5,  6: 9,  12: 16, 24: 28  },
+  copper:  { 3: 8,  6: 14, 12: 25, 24: 44  },
+  iron:    { 3: 12, 6: 20, 12: 36, 24: 64  },
+  gold:    { 3: 25, 6: 44, 12: 80, 24: 140 },
+  diamond: { 3: 60, 6: 104, 12: 190, 24: 340 }
+};
+
 // Преднагрузка изображений башен
 const towerImg = new Image();
 towerImg.src = "tower.png";
@@ -1041,6 +1181,7 @@ async function loadWorld() {
 
   worldData = data.revealed;
   towersData = data.towers;
+  minesData  = data.mines;
 
   // Размеры холста
   const canvasWidth = document.getElementById("worldCanvas").width;
@@ -1060,14 +1201,23 @@ function handleCanvasClick(e) {
   const mouseX = e.offsetX;
   const mouseY = e.offsetY;
 
-  // Пробегаем по всем башням и проверяем, была ли нажата какая-то из них
+  // Сначала проверяем шахты
+  for (const mine of minesData) {
+    const sx = mine.x * tileSize + offsetX;
+    const sy = mine.y * tileSize + offsetY;
+    if (mouseX >= sx && mouseX <= sx + tileSize && mouseY >= sy && mouseY <= sy + tileSize) {
+      openMineModal(mine.id);
+      return;
+    }
+  }
+
+  // Потом башни
   towersData.forEach(tower => {
     const sx = tower.x * tileSize + offsetX;
     const sy = tower.y * tileSize + offsetY;
-
     if (mouseX >= sx && mouseX <= sx + tileSize && mouseY >= sy && mouseY <= sy + tileSize) {
-      selectedTower = tower; // Сохраняем выбранную башню
-      openTowerInfo(tower); // Открываем информацию о башне
+      selectedTower = tower;
+      openTowerInfo(tower);
     }
   });
 }
@@ -1111,6 +1261,7 @@ async function updateWorld() {
 
   worldData = data.revealed;
   towersData = data.towers;
+  minesData  = data.mines;
   
   drawWorld();
 }
@@ -1617,6 +1768,62 @@ function drawWorld() {
     }
   }
 
+  // ===== ШАХТЫ =====
+minesData.forEach(m => {
+  const sx = m.x * tileSize + offsetX;
+  const sy = m.y * tileSize + offsetY;
+  if (sx + tileSize < 0 || sx > canvas.width || sy + tileSize < 0 || sy > canvas.height) return;
+
+  const icon = MINE_ICONS[m.type];
+
+  // Свечение под шахтой
+  const glowGrad = ctx.createRadialGradient(
+    sx + tileSize/2, sy + tileSize/2, 2,
+    sx + tileSize/2, sy + tileSize/2, tileSize * 0.9
+  );
+  glowGrad.addColorStop(0, icon.color + '55');
+  glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(sx - tileSize*0.4, sy - tileSize*0.4, tileSize*1.8, tileSize*1.8);
+
+  // Фон иконки шахты
+  const isCollapsed = m.collapsed_until && Date.now() < m.collapsed_until;
+  ctx.fillStyle = isCollapsed ? '#3a1010' : '#1a1a2e';
+  ctx.beginPath();
+  ctx.roundRect(sx + 3, sy + 3, tileSize - 6, tileSize - 6, 6);
+  ctx.fill();
+
+  // Рамка по типу
+  ctx.strokeStyle = isCollapsed ? '#ff4444' : icon.color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(sx + 3, sy + 3, tileSize - 6, tileSize - 6, 6);
+  ctx.stroke();
+
+  // Иконка входа (тёмный тоннель)
+  const mx = sx + tileSize/2;
+  const my = sy + tileSize/2;
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(mx, my + 3, tileSize * 0.18, Math.PI, 0);
+  ctx.rect(mx - tileSize*0.18, my + 3, tileSize*0.36, tileSize*0.22);
+  ctx.fill();
+
+  // Цветная полоска снизу (тип ресурса)
+  ctx.fillStyle = icon.color;
+  ctx.fillRect(sx + 6, sy + tileSize - 9, tileSize - 12, 4);
+
+  // Крест обвала
+  if (isCollapsed) {
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(mx - 7, my - 7); ctx.lineTo(mx + 7, my + 7);
+    ctx.moveTo(mx + 7, my - 7); ctx.lineTo(mx - 7, my + 7);
+    ctx.stroke();
+  }
+});
+
   // ===== БАШНИ =====
   towersData.forEach(t => {
     const sx = t.x * tileSize + offsetX;
@@ -1722,6 +1929,413 @@ canvas.addEventListener("touchend", e => {
 
 // для десктопа
 canvas.addEventListener("click", handleCanvasClick);
+
+// =======================
+// MINE FUNCTIONS
+// =======================
+
+async function openMineModal(mineId) {
+  const res = await fetch(`${API_URL}/mine/${mineId}`);
+  const mine = await res.json();
+  selectedMine = mine;
+
+  const icon = MINE_ICONS[mine.type];
+  const isCollapsed = mine.collapsed_until && Date.now() < mine.collapsed_until;
+  const isOwner = String(mine.owner_id) === String(currentUserId);
+  const cfg = MINE_LICENSE_PRICE[mine.type];
+
+  // Заголовок
+  document.getElementById('mine-modal-title').innerText =
+    `${icon.label} — Шахта #${mine.id}`;
+
+  // Состояние
+  const cond = Math.round(mine.condition);
+  document.getElementById('mine-condition-bar').style.width = cond + '%';
+  document.getElementById('mine-condition-bar').style.background =
+    cond > 60 ? '#4cd964' : cond > 30 ? '#f5c77a' : '#ff6b6b';
+  document.getElementById('mine-condition-label').innerText = `Состояние: ${cond}%`;
+
+  // Ресурсы
+  const pct = Math.round((mine.resources_left / mine.max_resources) * 100);
+  document.getElementById('mine-resources-info').innerHTML =
+    `📦 Ресурсов: <b>${Math.floor(mine.resources_left)}</b> / ${mine.max_resources} (${pct}%)`;
+
+  // Владелец
+  document.getElementById('mine-owner-info').innerText = mine.owner_id
+    ? (isOwner ? '👑 Ваша шахта' : `Владелец: #${mine.owner_id}`)
+    : '⚡ Шахта свободна';
+
+  // Обвал
+  const collapsedEl = document.getElementById('mine-collapsed-info');
+  if (isCollapsed) {
+    const remainMs = mine.collapsed_until - Date.now();
+    const remainH = Math.ceil(remainMs / 3600000);
+    collapsedEl.style.display = 'block';
+    collapsedEl.innerText = `💥 Обвал! Шахта закрыта ещё ~${remainH} ч.`;
+  } else {
+    collapsedEl.style.display = 'none';
+  }
+
+  // Статус
+  document.getElementById('mine-modal-status').innerText = isCollapsed
+    ? '⛔ Шахта недоступна (обвал)'
+    : mine.resources_left <= 0
+      ? '🪨 Ресурсы истощены'
+      : '✅ Шахта работает';
+
+  // Секция: Занять шахту
+  const claimSection = document.getElementById('mine-claim-section');
+  if (!mine.owner_id && !isCollapsed) {
+    const cost = MINE_CLAIM_COST[mine.type];
+    document.getElementById('mine-claim-cost').innerText =
+      `Стоимость: ${cost.stone} камня`;
+    claimSection.style.display = 'block';
+  } else {
+    claimSection.style.display = 'none';
+  }
+
+  // Секция: Обслуживание (только владелец)
+  const maintainSection = document.getElementById('mine-maintain-section');
+  maintainSection.style.display = isOwner ? 'block' : 'none';
+
+  // Секция: Лицензия (не владелец, не обвал, есть владелец)
+  const licenseSection = document.getElementById('mine-license-section');
+  const enterBtn = document.getElementById('mine-enter-btn');
+
+  if (!isOwner && mine.owner_id && !isCollapsed && mine.resources_left > 0) {
+    // Проверяем есть ли активная лицензия
+    licenseSection.style.display = 'block';
+    const btns = document.getElementById('mine-license-btns');
+    btns.innerHTML = '';
+    [3, 6, 12, 24].forEach(h => {
+      const price = cfg[h];
+      const btn = document.createElement('button');
+      btn.style.cssText = 'font-size:12px; padding:8px;';
+      btn.innerHTML = `${h}ч<br><span style="color:#aaa;font-size:10px;">${price} DC</span>`;
+      btn.onclick = () => buyLicense(h);
+      btns.appendChild(btn);
+    });
+    enterBtn.style.display = 'none';
+  } else {
+    licenseSection.style.display = 'none';
+  }
+
+  // Кнопка Войти: владелец или проверим лицензию
+  if (isOwner && !isCollapsed && mine.resources_left > 0) {
+    enterBtn.style.display = 'block';
+  } else if (!isOwner && mine.owner_id) {
+    // Покажем войти если есть лицензия — проверяем через попытку enter
+    enterBtn.style.display = 'none';
+    // Кнопки лицензии заменим на "Войти" если уже куплена
+    checkActiveLicense(mine.id);
+  } else {
+    enterBtn.style.display = 'none';
+  }
+
+  document.getElementById('mine-modal').style.display = 'flex';
+}
+
+async function checkActiveLicense(mineId) {
+  // Пробуем просто показать кнопку войти если сервер даст добро
+  // Реальная проверка произойдёт при нажатии Enter
+  document.getElementById('mine-enter-btn').style.display = 'block';
+  document.getElementById('mine-license-section').style.display = 'none';
+}
+
+function closeMineModal() {
+  document.getElementById('mine-modal').style.display = 'none';
+  selectedMine = null;
+}
+
+async function claimMine() {
+  if (!selectedMine) return;
+  const res = await fetch(`${API_URL}/mine/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
+  });
+  const data = await res.json();
+  if (data.error) {
+    const msgs = {
+      MAX_MINES_REACHED: 'Нельзя владеть более чем 2 шахтами',
+      NOT_ENOUGH_RESOURCES: 'Недостаточно ресурсов',
+      MINE_ALREADY_CLAIMED: 'Шахта уже занята'
+    };
+    alert(msgs[data.error] || data.error);
+    return;
+  }
+  alert('✅ Шахта теперь ваша!');
+  closeMineModal();
+  await updateWorld();
+  await openMineModal(selectedMine?.id || data.mine_id);
+}
+
+async function buyLicense(hours) {
+  if (!selectedMine) return;
+  const price = MINE_LICENSE_PRICE[selectedMine.type][hours];
+  if (!confirm(`Купить лицензию на ${hours} ч. за ${price} DC?`)) return;
+
+  const res = await fetch(`${API_URL}/mine/license`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id, hours })
+  });
+  const data = await res.json();
+  if (data.error) {
+    const msgs = {
+      NOT_ENOUGH_DC: 'Недостаточно DigCoin',
+      NO_OWNER: 'У шахты нет владельца',
+      MINE_COLLAPSED: 'Шахта обвалилась',
+      LICENSE_ALREADY_ACTIVE: 'Лицензия уже активна'
+    };
+    alert(msgs[data.error] || data.error);
+    return;
+  }
+  const exp = new Date(data.expires_at).toLocaleTimeString();
+  alert(`✅ Лицензия куплена до ${exp}`);
+  openMineModal(selectedMine.id);
+}
+
+async function maintainMine() {
+  const amount = parseInt(document.getElementById('mine-maintain-amount').value);
+  if (!amount || amount <= 0) { alert('Введите количество камня'); return; }
+
+  const res = await fetch(`${API_URL}/mine/maintain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id, amount })
+  });
+  const data = await res.json();
+  if (data.error) { alert(data.error); return; }
+  alert(`🔧 Состояние восстановлено до ${Math.round(data.new_condition)}%`);
+  openMineModal(selectedMine.id);
+}
+
+async function enterMine() {
+  if (!selectedMine) return;
+  const res = await fetch(`${API_URL}/mine/enter`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
+  });
+  const data = await res.json();
+
+  if (data.error) {
+    const msgs = {
+      NO_ACCESS: 'Нет доступа. Купите лицензию.',
+      MINE_COLLAPSED: '💥 Шахта обвалилась!',
+      MINE_EMPTY: 'Ресурсы в шахте закончились'
+    };
+    alert(msgs[data.error] || data.error);
+    return;
+  }
+
+  closeMineModal();
+  openMiningModal(selectedMine, data.session, data.mine);
+}
+
+function openMiningModal(mine, session, mineState) {
+  const icon = MINE_ICONS[mine.type];
+  document.getElementById('mining-modal-title').innerText =
+    `⛏️ ${icon.label} — Шахта #${mine.id}`;
+
+  const cond = Math.round(mineState?.condition ?? mine.condition);
+  document.getElementById('mining-condition-bar').style.width = cond + '%';
+  document.getElementById('mining-condition-pct').innerText = `${cond}%`;
+  document.getElementById('mining-resources-left').innerHTML =
+    `📦 Ресурсов осталось: <b>${Math.floor(mineState?.resources_left ?? mine.resources_left)}</b>`;
+
+  const now = Date.now();
+  const isRunning = session && now < session.ends_at;
+  const isDone    = session && now >= session.ends_at && !session.collected;
+
+  document.getElementById('mining-start-btn').style.display =
+    (!session || session.collected) ? 'block' : 'none';
+
+  document.getElementById('mining-session-block').style.display =
+    isRunning ? 'block' : 'none';
+
+  document.getElementById('mining-collect-btn').style.display =
+    isDone ? 'block' : 'none';
+
+  if (isRunning) {
+    startMiningTimer(session.started_at, session.ends_at);
+  }
+
+  // Сохраняем session и mine для кнопок внутри
+  window._activeSession = session;
+  window._activeMine = mine;
+
+  document.getElementById('mining-modal').style.display = 'flex';
+}
+
+function startMiningTimer(startedAt, endsAt) {
+  if (miningTimerInterval) clearInterval(miningTimerInterval);
+
+  function tick() {
+    const now = Date.now();
+    const total = endsAt - startedAt;
+    const elapsed = now - startedAt;
+    const pct = Math.min(100, (elapsed / total) * 100);
+    const remaining = Math.max(0, endsAt - now);
+
+    document.getElementById('mining-timer-bar').style.width = pct + '%';
+
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    document.getElementById('mining-timer-label').innerText =
+      remaining > 0
+        ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с`
+        : '✅ Готово! Собери ресурсы';
+
+    if (remaining <= 0) {
+      clearInterval(miningTimerInterval);
+      document.getElementById('mining-session-block').style.display = 'none';
+      document.getElementById('mining-collect-btn').style.display = 'block';
+    }
+  }
+
+  tick();
+  miningTimerInterval = setInterval(tick, 1000);
+}
+
+async function startMining() {
+  const mine = window._activeMine;
+  if (!mine) return;
+
+  const res = await fetch(`${API_URL}/mine/enter`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id })
+  });
+  const data = await res.json();
+  if (data.error) { alert(data.error); return; }
+
+  document.getElementById('mining-start-btn').style.display = 'none';
+  document.getElementById('mining-session-block').style.display = 'block';
+  window._activeSession = data.session;
+  startMiningTimer(data.session.started_at, data.session.ends_at);
+}
+
+async function collectResources() {
+  const mine = window._activeMine;
+  if (!mine) return;
+
+  const res = await fetch(`${API_URL}/mine/collect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id })
+  });
+  const data = await res.json();
+
+  if (data.error === 'MINE_COLLAPSED') {
+    alert('💥 Шахта обвалилась во время добычи! Закрыта на 12 часов.');
+    closeMiningModal();
+    return;
+  }
+  if (data.error) { alert(data.error); return; }
+
+  const icon = MINE_ICONS[mine.type];
+  alert(`🎒 Получено: ${data.earned} × ${icon.label}`);
+  document.getElementById('mining-collect-btn').style.display = 'none';
+  document.getElementById('mining-start-btn').style.display = 'block';
+  window._activeSession = null;
+  await loadPlayerDataOnly();
+}
+
+function closeMiningModal() {
+  if (miningTimerInterval) clearInterval(miningTimerInterval);
+  document.getElementById('mining-modal').style.display = 'none';
+  window._activeMine = null;
+  window._activeSession = null;
+}
+
+async function fetchActiveReconstructSession(mineId) {
+  // Используем /mine/enter — если вернёт сессию типа reconstruction, берём её
+  // Вместо отдельного endpoint просто проверяем через enter
+  // Делаем отдельный запрос к /mine/:id и смотрим сессию
+  // На самом деле нам нужен endpoint для получения сессии — используем хак через enter
+  // Лучше добавить отдельный GET /mine/:id/session
+  try {
+    const res = await fetch(`${API_URL}/mine/${mineId}/session?user_id=${currentUserId}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function abandonMine() {
+  if (!selectedMine) return;
+  if (!confirm('Вы уверены? Шахта станет свободной.')) return;
+
+  const res = await fetch(`${API_URL}/mine/abandon`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
+  });
+  const data = await res.json();
+  if (data.error) { alert(data.error); return; }
+  alert('✅ Вы отказались от шахты');
+  closeMineModal();
+  await updateWorld();
+}
+
+async function startReconstruct() {
+  if (!selectedMine) return;
+  if (!confirm('Запустить реконструкцию? Займёт 3 суток (можно ускорить до 24ч за 500 камня).')) return;
+
+  const res = await fetch(`${API_URL}/mine/reconstruct`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
+  });
+  const data = await res.json();
+  if (data.error) {
+    const msgs = {
+      MINE_NOT_EMPTY: 'В шахте ещё есть ресурсы',
+      ALREADY_HAS_SESSION: 'У вас уже есть активная сессия'
+    };
+    alert(msgs[data.error] || data.error);
+    return;
+  }
+  alert('🔄 Реконструкция запущена! Завершится через 3 суток.');
+  openMineModal(selectedMine.id);
+}
+
+async function speedupReconstruct(mineId) {
+  if (!confirm('Ускорить реконструкцию до 24ч за 500 камня?')) return;
+  const res = await fetch(`${API_URL}/mine/reconstruct/speedup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+  });
+  const data = await res.json();
+  if (data.error) {
+    const msgs = {
+      NOT_ENOUGH_STONE: 'Нужно 500 камня',
+      ALREADY_FAST: 'Уже ускорено'
+    };
+    alert(msgs[data.error] || data.error);
+    return;
+  }
+  alert('⚡ Ускорено! Завершится через 24ч.');
+  openMineModal(mineId);
+}
+
+async function collectReconstruct(mineId) {
+  const res = await fetch(`${API_URL}/mine/reconstruct/collect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+  });
+  const data = await res.json();
+  if (data.error === 'NOT_FINISHED') {
+    alert('Реконструкция ещё не завершена');
+    return;
+  }
+  if (data.error) { alert(data.error); return; }
+  alert(`✅ Шахта восстановлена! Ресурсов: ${data.resources_restored}`);
+  openMineModal(mineId);
+}
 
 loadPlayer();
 
