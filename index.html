@@ -1775,51 +1775,89 @@ minesData.forEach(m => {
   if (sx + tileSize < 0 || sx > canvas.width || sy + tileSize < 0 || sy > canvas.height) return;
 
   const icon = MINE_ICONS[m.type];
-
-  // Свечение под шахтой
-  const glowGrad = ctx.createRadialGradient(
-    sx + tileSize/2, sy + tileSize/2, 2,
-    sx + tileSize/2, sy + tileSize/2, tileSize * 0.9
-  );
-  glowGrad.addColorStop(0, icon.color + '55');
-  glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glowGrad;
-  ctx.fillRect(sx - tileSize*0.4, sy - tileSize*0.4, tileSize*1.8, tileSize*1.8);
-
-  // Фон иконки шахты
   const isCollapsed = m.collapsed_until && Date.now() < m.collapsed_until;
-  ctx.fillStyle = isCollapsed ? '#3a1010' : '#1a1a2e';
+  const mx = sx + tileSize / 2;
+  const my = sy + tileSize / 2;
+
+  // Скала / гора — основа
+  ctx.fillStyle = '#3a3a3a';
   ctx.beginPath();
-  ctx.roundRect(sx + 3, sy + 3, tileSize - 6, tileSize - 6, 6);
+  ctx.moveTo(sx + 2, sy + tileSize - 2);
+  ctx.lineTo(mx - tileSize * 0.15, sy + tileSize * 0.28);
+  ctx.lineTo(mx, sy + tileSize * 0.12);
+  ctx.lineTo(mx + tileSize * 0.15, sy + tileSize * 0.28);
+  ctx.lineTo(sx + tileSize - 2, sy + tileSize - 2);
+  ctx.closePath();
   ctx.fill();
 
-  // Рамка по типу
-  ctx.strokeStyle = isCollapsed ? '#ff4444' : icon.color;
-  ctx.lineWidth = 2;
+  // Грани горы (объём)
+  ctx.fillStyle = '#2a2a2a';
   ctx.beginPath();
-  ctx.roundRect(sx + 3, sy + 3, tileSize - 6, tileSize - 6, 6);
+  ctx.moveTo(mx, sy + tileSize * 0.12);
+  ctx.lineTo(mx + tileSize * 0.15, sy + tileSize * 0.28);
+  ctx.lineTo(sx + tileSize - 2, sy + tileSize - 2);
+  ctx.lineTo(mx + tileSize * 0.05, sy + tileSize - 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Снег на вершине
+  ctx.fillStyle = '#cdd5e0';
+  ctx.beginPath();
+  ctx.moveTo(mx, sy + tileSize * 0.12);
+  ctx.lineTo(mx - tileSize * 0.09, sy + tileSize * 0.26);
+  ctx.lineTo(mx + tileSize * 0.09, sy + tileSize * 0.26);
+  ctx.closePath();
+  ctx.fill();
+
+  // Вход в шахту — арка
+  const archX = mx - tileSize * 0.22;
+  const archW = tileSize * 0.44;
+  const archY = sy + tileSize * 0.52;
+  const archH = tileSize * 0.38;
+
+  // Камни вокруг арки
+  ctx.fillStyle = '#555';
+  ctx.fillRect(archX - 3, archY, archW + 6, archH);
+
+  // Тёмный провал внутри
+  ctx.fillStyle = isCollapsed ? '#5a1010' : '#0a0a0f';
+  ctx.beginPath();
+  ctx.arc(mx, archY, tileSize * 0.19, Math.PI, 0);
+  ctx.rect(archX + 2, archY, archW - 4, archH - 2);
+  ctx.fill();
+
+  // Деревянные крепления — две вертикали
+  ctx.strokeStyle = '#8b5e2a';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(mx - tileSize * 0.14, archY);
+  ctx.lineTo(mx - tileSize * 0.14, archY + archH);
+  ctx.moveTo(mx + tileSize * 0.14, archY);
+  ctx.lineTo(mx + tileSize * 0.14, archY + archH);
   ctx.stroke();
 
-  // Иконка входа (тёмный тоннель)
-  const mx = sx + tileSize/2;
-  const my = sy + tileSize/2;
-  ctx.fillStyle = '#111';
+  // Горизонтальная перекладина
   ctx.beginPath();
-  ctx.arc(mx, my + 3, tileSize * 0.18, Math.PI, 0);
-  ctx.rect(mx - tileSize*0.18, my + 3, tileSize*0.36, tileSize*0.22);
-  ctx.fill();
+  ctx.moveTo(mx - tileSize * 0.14, archY + tileSize * 0.06);
+  ctx.lineTo(mx + tileSize * 0.14, archY + tileSize * 0.06);
+  ctx.stroke();
 
-  // Цветная полоска снизу (тип ресурса)
+  // Цветная точка типа ресурса (верхний левый угол)
   ctx.fillStyle = icon.color;
-  ctx.fillRect(sx + 6, sy + tileSize - 9, tileSize - 12, 4);
+  ctx.beginPath();
+  ctx.arc(sx + 7, sy + 7, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
-  // Крест обвала
+  // Крест если обвал
   if (isCollapsed) {
     ctx.strokeStyle = '#ff4444';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(mx - 7, my - 7); ctx.lineTo(mx + 7, my + 7);
-    ctx.moveTo(mx + 7, my - 7); ctx.lineTo(mx - 7, my + 7);
+    ctx.moveTo(mx - 8, my - 8); ctx.lineTo(mx + 8, my + 8);
+    ctx.moveTo(mx + 8, my - 8); ctx.lineTo(mx - 8, my + 8);
     ctx.stroke();
   }
 });
