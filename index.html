@@ -1139,6 +1139,13 @@ let minesData = [];
 let selectedMine = null;
 let miningTimerInterval = null;
 
+const STARTER_COORDS = new Set([
+  '52,50', '48,50', '50,52', '50,48', '53,53'
+]);
+function isClientStarterMine(mine) {
+  return STARTER_COORDS.has(`${mine.x},${mine.y}`);
+}
+
 const MINE_ICONS = {
   coal:    { color: '#5a5a5a', label: '🪨 Уголь'   },
   copper:  { color: '#c87533', label: '🟠 Медь'    },
@@ -2023,7 +2030,7 @@ async function openMineModal(mineId) {
 
   // Секция: Занять шахту
   const claimSection = document.getElementById('mine-claim-section');
-  if (!mine.owner_id && !isCollapsed) {
+  if (!mine.owner_id && !isCollapsed && !isClientStarterMine(mine)) {
     const cost = MINE_CLAIM_COST[mine.type];
     document.getElementById('mine-claim-cost').innerText =
       `Стоимость: ${cost.stone} камня`;
@@ -2059,16 +2066,22 @@ async function openMineModal(mineId) {
   }
 
   // Кнопка Войти: владелец или проверим лицензию
-  if (isOwner && !isCollapsed && mine.resources_left > 0) {
-    enterBtn.style.display = 'block';
-  } else if (!isOwner && mine.owner_id) {
-    // Покажем войти если есть лицензия — проверяем через попытку enter
-    enterBtn.style.display = 'none';
-    // Кнопки лицензии заменим на "Войти" если уже куплена
-    checkActiveLicense(mine.id);
-  } else {
-    enterBtn.style.display = 'none';
-  }
+  const isStarter = isClientStarterMine(mine);
+
+if (isStarter && !isCollapsed && mine.resources_left > 0) {
+  // Стартовая шахта — войти всегда можно
+  enterBtn.style.display = 'block';
+  enterBtn.innerText = '▶ Войти (стартовая, -80% добычи)';
+  document.getElementById('mine-license-section').style.display = 'none';
+} else if (isOwner && !isCollapsed && mine.resources_left > 0) {
+  enterBtn.style.display = 'block';
+  enterBtn.innerText = '▶ Войти в шахту';
+} else if (!isOwner && !isStarter && mine.owner_id) {
+  enterBtn.style.display = 'none';
+  checkActiveLicense(mine.id);
+} else {
+  enterBtn.style.display = 'none';
+}
 
   document.getElementById('mine-modal').style.display = 'flex';
 }
