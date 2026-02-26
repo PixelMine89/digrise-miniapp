@@ -1138,6 +1138,7 @@ let selectedTower = null;  // Сохраняем выбранную башню
 let minesData = [];
 let selectedMine = null;
 let miningTimerInterval = null;
+let activeMiningMineId = null; // ID шахты где сейчас идёт копка
 
 const STARTER_COORDS = new Set([
   '52,50', '48,50', '50,52', '50,48', '53,53'
@@ -1860,6 +1861,27 @@ minesData.forEach(m => {
   ctx.lineWidth = 1;
   ctx.stroke();
 
+  // Метка активной копки (красное свечение)
+  if (m.id === activeMiningMineId) {
+    const pulse = ctx.createRadialGradient(mx, my, 2, mx, my, tileSize * 1.1);
+    pulse.addColorStop(0, 'rgba(255, 60, 60, 0.6)');
+    pulse.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    ctx.fillStyle = pulse;
+    ctx.fillRect(sx - tileSize * 0.5, sy - tileSize * 0.5, tileSize * 2, tileSize * 2);
+
+    // Красная рамка
+    ctx.strokeStyle = '#ff3333';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(sx + 1, sy + 1, tileSize - 2, tileSize - 2, 6);
+    ctx.stroke();
+
+    // Иконка кирки в углу
+    ctx.fillStyle = '#ff6666';
+    ctx.font = `${Math.floor(tileSize * 0.3)}px serif`;
+    ctx.fillText('⛏', sx + tileSize - tileSize * 0.38, sy + tileSize * 0.36);
+  }
+
   // Крест если обвал
   if (isCollapsed) {
     ctx.strokeStyle = '#ff4444';
@@ -2179,13 +2201,15 @@ async function enterMine() {
     const msgs = {
       NO_ACCESS: 'Нет доступа. Купите лицензию.',
       MINE_COLLAPSED: '💥 Шахта обвалилась!',
-      MINE_EMPTY: 'Ресурсы в шахте закончились'
+      MINE_EMPTY: 'Ресурсы в шахте закончились',
+      ALREADY_MINING_ELSEWHERE: '⛏️ Вы уже копаете в другой шахте! Сначала завершите там.'
     };
     alert(msgs[data.error] || data.error);
     return;
   }
 
   closeMineModal(); // теперь порядок не важен — mineToEnter уже сохранён
+  activeMiningMineId = mineToEnter.id;
   openMiningModal(mineToEnter, data.session, data.mine);
 }
 
@@ -2257,6 +2281,8 @@ function startMiningTimer(startedAt, endsAt) {
 async function startMining() {
   const mine = window._activeMine;
   if (!mine) return;
+  // Защита от ghost click — если модалка уже закрыта
+  if (document.getElementById('mining-modal').style.display === 'none') return;
 
   const res = await fetch(`${API_URL}/mine/enter`, {
     method: 'POST',
@@ -2294,6 +2320,7 @@ async function collectResources() {
   alert(`🎒 Получено: ${data.earned} × ${icon.label}`);
   document.getElementById('mining-collect-btn').style.display = 'none';
   document.getElementById('mining-start-btn').style.display = 'block';
+  activeMiningMineId = null;
   window._activeSession = null;
   await loadPlayerDataOnly();
 }
