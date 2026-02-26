@@ -1246,11 +1246,13 @@ function openTowerInfo(tower) {
       <p>Вложено ресурсов: ${tower.current}</p>
     `;
     contributeBtn.style.display = "none"; // Скрываем кнопку вложения ресурсов
+    resourceAmountInput.style.display = "none"; // Скрываем поле вложения ресурсов
   } else {
     content.innerHTML = `
       <p>Вложено ресурсов: ${tower.current} из ${tower.required}</p>
     `;
     contributeBtn.style.display = "block"; // Показываем кнопку вложения ресурсов
+    resourceAmountInput.style.display = "block"; // Скрываем поле вложения ресурсов
   }
 
   // Показываем модальное окно
