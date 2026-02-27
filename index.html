@@ -316,6 +316,8 @@ button:disabled {
   margin-bottom: 8px;
   color: var(--muted);
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -356,14 +358,14 @@ button:disabled {
     <div style="margin-top:12px;">
       <div style="font-weight:700; font-size:14px; margin-bottom:8px; padding:0 2px;">🏭 Мои предприятия</div>
       <div id="my-assets-list" style="display:flex; flex-direction:column; gap:6px;">
-        <div style="color:var(--muted); font-size:12px; padding:8px; background:var(--card); border-radius:10px;">Загрузка...</div>
+        <div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Загрузка...</div>
       </div>
     </div>
     <!-- МОИ БАШНИ -->
     <div style="margin-top:12px;">
       <div style="font-weight:700; font-size:14px; margin-bottom:8px; padding:0 2px;">🗼 Мои башни</div>
       <div id="my-towers-list" style="display:flex; flex-direction:column; gap:6px;">
-        <div style="color:var(--muted); font-size:12px; padding:8px; background:var(--card); border-radius:10px;">Загрузка...</div>
+        <div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Загрузка...</div>
       </div>
     </div>
   </div>
@@ -718,6 +720,10 @@ button:disabled {
       </div>
     </div>
   </div>
+  <div id="action-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99998; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
+    <div style="width:40px; height:40px; border:3px solid rgba(255,255,255,0.15); border-top-color:#f5c77a; border-radius:50%; animation:spin 0.7s linear infinite;"></div>
+    <div style="color:#fff; font-size:13px; font-weight:600; letter-spacing:0.5px;">Выполняется...</div>
+  </div>
 </div>
   
 <script>
@@ -781,7 +787,8 @@ async function loadPlayer() {
   playerInterval = setInterval(loadPlayerDataOnly, 2000);
 
   showTab("mine");
-  loadWorld();
+  await loadWorld();
+  await loadPlayerAssets();
 }
 
 async function loadPlayerDataOnly() {
@@ -1166,6 +1173,17 @@ let minesData = [];
 let selectedMine = null;
 let miningTimerInterval = null;
 let activeMiningMineId = null; // ID шахты где сейчас идёт копка
+
+let _actionLock = false;
+
+function showActionLoader() {
+  _actionLock = true;
+  document.getElementById('action-overlay').style.display = 'flex';
+}
+function hideActionLoader() {
+  _actionLock = false;
+  document.getElementById('action-overlay').style.display = 'none';
+}
 
 const STARTER_COORDS = new Set([
   '52,50', '48,50', '50,52', '50,48', '53,53'
@@ -2114,6 +2132,44 @@ async function openMineModal(mineId) {
   const maintainSection = document.getElementById('mine-maintain-section');
   maintainSection.style.display = isOwner ? 'block' : 'none';
 
+  // Кнопка: Отказаться (только владелец)
+  document.getElementById('mine-abandon-btn').style.display =
+    (isOwner && !isCollapsed) ? 'block' : 'none';
+
+  // Реконструкция и её статус
+  const reconstructSection = document.getElementById('mine-reconstruct-section');
+  const reconstructStatus  = document.getElementById('mine-reconstruct-status');
+  reconstructSection.style.display = 'none';
+  reconstructStatus.style.display  = 'none';
+
+  if (isOwner && mine.resources_left <= 0) {
+    try {
+      const sRes = await fetch(`${API_URL}/mine/${mine.id}/session?user_id=${currentUserId}`);
+      if (sRes.ok) {
+        const sess = await sRes.json();
+        if (sess.session_type === 'reconstruction') {
+          const rem = sess.ends_at - Date.now();
+          const remH = Math.ceil(rem / 3600000);
+          if (rem > 0) {
+            reconstructStatus.innerHTML = `🔄 Реконструкция: осталось ~${remH} ч.`
+              + (rem > 24 * 3600000
+                ? `<br><button onclick="speedupReconstruct(${mine.id})" style="margin-top:6px;font-size:12px;">⚡ Ускорить (500 камня)</button>`
+                : '');
+          } else {
+            reconstructStatus.innerHTML = `✅ Реконструкция завершена!<br>
+              <button onclick="collectReconstruct(${mine.id})" style="margin-top:6px;font-size:12px;background:linear-gradient(180deg,#4cd964,#2ea84e);color:#fff;">Забрать шахту</button>`;
+          }
+          reconstructStatus.style.display = 'block';
+        }
+      } else {
+        // нет сессии — можно начать реконструкцию
+        reconstructSection.style.display = 'block';
+      }
+    } catch(e) {
+      reconstructSection.style.display = 'block';
+    }
+  }
+
   // Секция: Лицензия (не владелец, не обвал, есть владелец)
   const licenseSection = document.getElementById('mine-license-section');
   const enterBtn = document.getElementById('mine-enter-btn');
@@ -2170,26 +2226,33 @@ function closeMineModal() {
 }
 
 async function claimMine() {
-  if (!selectedMine) return;
-  const res = await fetch(`${API_URL}/mine/claim`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
-  });
-  const data = await res.json();
-  if (data.error) {
-    const msgs = {
-      MAX_MINES_REACHED: 'Нельзя владеть более чем 2 шахтами',
-      NOT_ENOUGH_RESOURCES: 'Недостаточно ресурсов',
-      MINE_ALREADY_CLAIMED: 'Шахта уже занята'
-    };
-    alert(msgs[data.error] || data.error);
-    return;
+  if (!selectedMine || _actionLock) return;
+  const mineId = selectedMine.id; // сохраняем ДО closeMineModal
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        MAX_MINES_REACHED: 'Нельзя владеть более чем 2 шахтами',
+        NOT_ENOUGH_RESOURCES: 'Недостаточно ресурсов',
+        MINE_ALREADY_CLAIMED: 'Шахта уже занята'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert('✅ Шахта теперь ваша!');
+    closeMineModal();
+    await updateWorld();
+    await loadPlayerAssets();
+    await openMineModal(mineId); // используем сохранённый id
+  } finally {
+    hideActionLoader();
   }
-  alert('✅ Шахта теперь ваша!');
-  closeMineModal();
-  await updateWorld();
-  await openMineModal(selectedMine?.id || data.mine_id);
 }
 
 async function buyLicense(hours) {
@@ -2324,25 +2387,37 @@ function startMiningTimer(startedAt, endsAt) {
   tick();
   miningTimerInterval = setInterval(tick, 1000);
 }
-
+  
 async function startMining() {
   const mine = window._activeMine;
-  if (!mine) return;
-  // Защита от ghost click — если модалка уже закрыта
+  if (!mine || _actionLock) return;
   if (document.getElementById('mining-modal').style.display === 'none') return;
 
-  const res = await fetch(`${API_URL}/mine/enter`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id })
-  });
-  const data = await res.json();
-  if (data.error) { alert(data.error); return; }
-
-  document.getElementById('mining-start-btn').style.display = 'none';
-  document.getElementById('mining-session-block').style.display = 'block';
-  window._activeSession = data.session;
-  startMiningTimer(data.session.started_at, data.session.ends_at);
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        ALREADY_MINING_ELSEWHERE: '⛏️ Вы уже копаете в другой шахте!',
+        MINE_EMPTY: 'Ресурсы закончились',
+        MINE_COLLAPSED: 'Шахта обвалилась'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    document.getElementById('mining-start-btn').style.display = 'none';
+    document.getElementById('mining-session-block').style.display = 'block';
+    window._activeSession = data.session;
+    activeMiningMineId = mine.id;
+    startMiningTimer(data.session.started_at, data.session.ends_at);
+  } finally {
+    hideActionLoader();
+  }
 }
 
 async function collectResources() {
@@ -2474,52 +2549,69 @@ function centerOnTile(tx, ty) {
 }
 
 async function loadPlayerAssets() {
-  const res = await fetch(`${API_URL}/player/assets?user_id=${currentUserId}`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API_URL}/player/assets?user_id=${currentUserId}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
 
-  // === МОИ ПРЕДПРИЯТИЯ (шахты) ===
-  const minesList = document.getElementById('my-assets-list');
-  if (!data.mines || data.mines.length === 0) {
-    minesList.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--card); border-radius:10px;">Нет шахт в собственности</div>`;
-  } else {
-    minesList.innerHTML = data.mines.map(m => {
-      const icon = MINE_ICONS[m.type];
-      const cond = Math.round(m.condition);
-      const condColor = cond > 60 ? '#4cd964' : cond > 30 ? '#f5c77a' : '#ff6b6b';
-      return `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--card); border-radius:12px; border-left:3px solid ${icon.color};">
-          <div>
-            <div style="font-size:13px; font-weight:600;">${icon.label} — Шахта #${m.id}</div>
-            <div style="font-size:11px; color:var(--muted);">
-              Состояние: <span style="color:${condColor}">${cond}%</span> &nbsp;|&nbsp;
-              Ресурсов: ${Math.floor(m.resources_left)}
+    // Восстанавливаем метку активной шахты после перезагрузки
+    if (data.active_session && data.active_session.mine_id) {
+      activeMiningMineId = data.active_session.mine_id;
+      drawWorld();
+    }
+
+    // === МОИ ПРЕДПРИЯТИЯ (шахты) ===
+    const minesList = document.getElementById('my-assets-list');
+    if (!data.mines || data.mines.length === 0) {
+      minesList.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Нет шахт в собственности</div>`;
+    } else {
+      minesList.innerHTML = data.mines.map(m => {
+        const icon = MINE_ICONS[m.type];
+        const cond = Math.round(m.condition);
+        const condColor = cond > 60 ? '#4cd964' : cond > 30 ? '#f5c77a' : '#ff6b6b';
+        const isActive = m.id === activeMiningMineId;
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid ${icon.color}; ${isActive ? 'box-shadow:0 0 0 1px #ff3333;' : ''}">
+            <div>
+              <div style="font-size:13px; font-weight:600;">${isActive ? '⛏️ ' : ''}${icon.label} — Шахта #${m.id}</div>
+              <div style="font-size:11px; color:var(--muted);">
+                Состояние: <span style="color:${condColor}">${cond}%</span> &nbsp;|&nbsp;
+                Ресурсов: ${Math.floor(m.resources_left)}
+                ${isActive ? '&nbsp;|&nbsp;<span style="color:#ff6b6b;">Идёт добыча</span>' : ''}
+              </div>
             </div>
-          </div>
-          <button onclick="centerOnTile(${m.x},${m.y})" style="padding:6px 10px; font-size:16px; background:rgba(255,255,255,0.07); border-radius:8px;">📍</button>
-        </div>`;
-    }).join('');
-  }
+            <button onclick="centerOnTile(${m.x},${m.y})" style="padding:6px 10px; font-size:16px; background:rgba(255,255,255,0.07); border-radius:8px; min-width:36px;">📍</button>
+          </div>`;
+      }).join('');
+    }
 
-  // === МОИ БАШНИ ===
-  const towersList = document.getElementById('my-towers-list');
-  if (!data.towers || data.towers.length === 0) {
-    towersList.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--card); border-radius:10px;">Вы ещё не строили башни</div>`;
-  } else {
-    towersList.innerHTML = data.towers.map(t => {
-      const pct = Math.round((t.contributed / t.required) * 100);
-      const statusLabel = t.completed ? '✅ Достроена' : `🔨 ${pct}% вложено`;
-      const incomeStr = t.pending_income > 0
-        ? `<span style="color:#f5c77a"> | +${t.pending_income.toFixed(2)} DC</span>`
-        : '';
-      return `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--card); border-radius:12px; border-left:3px solid ${t.completed ? '#4cd964' : '#4fdcff'};">
-          <div>
-            <div style="font-size:13px; font-weight:600;">Башня #${t.tower_id} (${t.x},${t.y})</div>
-            <div style="font-size:11px; color:var(--muted);">${statusLabel}${incomeStr}</div>
-          </div>
-          <button onclick="centerOnTile(${t.x},${t.y})" style="padding:6px 10px; font-size:16px; background:rgba(255,255,255,0.07); border-radius:8px;">📍</button>
-        </div>`;
-    }).join('');
+    // === МОИ БАШНИ ===
+    const towersList = document.getElementById('my-towers-list');
+    if (!data.towers || data.towers.length === 0) {
+      towersList.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Вы ещё не строили башни</div>`;
+    } else {
+      towersList.innerHTML = data.towers.map(t => {
+        const pct = Math.round((t.contributed / t.required) * 100);
+        const statusLabel = t.completed ? '✅ Достроена' : `🔨 Вложено: ${pct}%`;
+        const incomeStr = t.pending_income > 0
+          ? `&nbsp;|&nbsp;<span style="color:#f5c77a;">+${t.pending_income.toFixed(2)} DC</span>`
+          : '';
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid ${t.completed ? '#4cd964' : '#4fdcff'};">
+            <div>
+              <div style="font-size:13px; font-weight:600;">Башня #${t.tower_id}</div>
+              <div style="font-size:11px; color:var(--muted);">${statusLabel}${incomeStr}</div>
+            </div>
+            <button onclick="centerOnTile(${t.x},${t.y})" style="padding:6px 10px; font-size:16px; background:rgba(255,255,255,0.07); border-radius:8px; min-width:36px;">📍</button>
+          </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    console.error('loadPlayerAssets error:', e);
+    document.getElementById('my-assets-list').innerHTML =
+      `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Не удалось загрузить</div>`;
+    document.getElementById('my-towers-list').innerHTML =
+      `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Не удалось загрузить</div>`;
   }
 }
 
