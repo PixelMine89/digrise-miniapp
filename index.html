@@ -1987,33 +1987,37 @@ minesData.forEach(m => {
 }
 
 async function contributeResources() {
+  if (!selectedTower || _actionLock) return; // БАГ БЫЛ — selectedTower не проверялся
   const amount = parseInt(document.getElementById("resource-amount").value);
   if (isNaN(amount) || amount <= 0) {
     alert("Введите количество ресурсов для вложения.");
     return;
   }
+  const towerId = selectedTower.id; // сохраняем до closeTowerInfo
 
-  const towerId = selectedTower.id; // selectedTower — это объект с данными о выбранной башне
-  const res = await fetch(`${API_URL}/tower/contribute`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: currentUserId,
-      tower_id: towerId,
-      amount
-    })
-  });
-
-  const data = await res.json();
-
-  if (data.error) {
-    alert(data.error);
-    return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/tower/contribute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: currentUserId,
+        tower_id: towerId,
+        amount
+      })
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    alert("Ресурсы успешно вложены!");
+    closeTowerInfo();
+    await updateWorld();
+    await loadPlayerAssets();
+  } finally {
+    hideActionLoader();
   }
-
-  alert("Ресурсы успешно вложены!");
-  updateWorld(); // Обновляем мир после внесения изменений
-  closeTowerInfo(); // Закрываем модальное окно
 }
 
 const canvas = document.getElementById("worldCanvas");
@@ -2256,71 +2260,89 @@ async function claimMine() {
 }
 
 async function buyLicense(hours) {
-  if (!selectedMine) return;
-  const price = MINE_LICENSE_PRICE[selectedMine.type][hours];
+  if (!selectedMine || _actionLock) return;
+  const mine = selectedMine; // сохраняем сразу
+  const price = MINE_LICENSE_PRICE[mine.type][hours];
   if (!confirm(`Купить лицензию на ${hours} ч. за ${price} DC?`)) return;
 
-  const res = await fetch(`${API_URL}/mine/license`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id, hours })
-  });
-  const data = await res.json();
-  if (data.error) {
-    const msgs = {
-      NOT_ENOUGH_DC: 'Недостаточно DigCoin',
-      NO_OWNER: 'У шахты нет владельца',
-      MINE_COLLAPSED: 'Шахта обвалилась',
-      LICENSE_ALREADY_ACTIVE: 'Лицензия уже активна'
-    };
-    alert(msgs[data.error] || data.error);
-    return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/license`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id, hours })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_DC: 'Недостаточно DigCoin',
+        NO_OWNER: 'У шахты нет владельца',
+        MINE_COLLAPSED: 'Шахта обвалилась',
+        LICENSE_ALREADY_ACTIVE: 'Лицензия уже активна'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const exp = new Date(data.expires_at).toLocaleTimeString();
+    alert(`✅ Лицензия куплена до ${exp}`);
+    await openMineModal(mine.id);
+  } finally {
+    hideActionLoader();
   }
-  const exp = new Date(data.expires_at).toLocaleTimeString();
-  alert(`✅ Лицензия куплена до ${exp}`);
-  openMineModal(selectedMine.id);
 }
 
 async function maintainMine() {
+  if (!selectedMine || _actionLock) return;
   const amount = parseInt(document.getElementById('mine-maintain-amount').value);
   if (!amount || amount <= 0) { alert('Введите количество камня'); return; }
+  const mineId = selectedMine.id; // сохраняем до await
 
-  const res = await fetch(`${API_URL}/mine/maintain`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id, amount })
-  });
-  const data = await res.json();
-  if (data.error) { alert(data.error); return; }
-  alert(`🔧 Состояние восстановлено до ${Math.round(data.new_condition)}%`);
-  openMineModal(selectedMine.id);
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/maintain`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineId, amount })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert(`🔧 Состояние восстановлено до ${Math.round(data.new_condition)}%`);
+    await openMineModal(mineId);
+  } finally {
+    hideActionLoader();
+  }
 }
 
 async function enterMine() {
-  if (!selectedMine) return;
-  const mineToEnter = selectedMine; // сохраняем ДО closeMineModal
+  if (!selectedMine || _actionLock) return;
+  const mineToEnter = selectedMine;
 
-  const res = await fetch(`${API_URL}/mine/enter`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: mineToEnter.id })
-  });
-  const data = await res.json();
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/enter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineToEnter.id })
+    });
+    const data = await res.json();
 
-  if (data.error) {
-    const msgs = {
-      NO_ACCESS: 'Нет доступа. Купите лицензию.',
-      MINE_COLLAPSED: '💥 Шахта обвалилась!',
-      MINE_EMPTY: 'Ресурсы в шахте закончились',
-      ALREADY_MINING_ELSEWHERE: '⛏️ Вы уже копаете в другой шахте! Сначала завершите там.'
-    };
-    alert(msgs[data.error] || data.error);
-    return;
+    if (data.error) {
+      const msgs = {
+        NO_ACCESS: 'Нет доступа. Купите лицензию.',
+        MINE_COLLAPSED: '💥 Шахта обвалилась!',
+        MINE_EMPTY: 'Ресурсы в шахте закончились',
+        ALREADY_MINING_ELSEWHERE: '⛏️ Вы уже копаете в другой шахте! Сначала завершите там.'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+
+    closeMineModal();
+    // activeMiningMineId НЕ ставим здесь — только после реального старта копки (startMining)
+    openMiningModal(mineToEnter, data.session, data.mine);
+  } finally {
+    hideActionLoader();
   }
-
-  closeMineModal(); // теперь порядок не важен — mineToEnter уже сохранён
-  activeMiningMineId = mineToEnter.id;
-  openMiningModal(mineToEnter, data.session, data.mine);
 }
 
 function openMiningModal(mine, session, mineState) {
@@ -2422,29 +2444,36 @@ async function startMining() {
 
 async function collectResources() {
   const mine = window._activeMine;
-  if (!mine) return;
+  if (!mine || _actionLock) return;
 
-  const res = await fetch(`${API_URL}/mine/collect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id })
-  });
-  const data = await res.json();
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/collect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mine.id })
+    });
+    const data = await res.json();
 
-  if (data.error === 'MINE_COLLAPSED') {
-    alert('💥 Шахта обвалилась во время добычи! Закрыта на 12 часов.');
-    closeMiningModal();
-    return;
+    if (data.error === 'MINE_COLLAPSED') {
+      alert('💥 Шахта обвалилась во время добычи! Закрыта на 12 часов.');
+      activeMiningMineId = null; // БАГ БЫЛ ЗДЕСЬ — раньше не обнулялось
+      closeMiningModal();
+      await loadPlayerAssets();
+      return;
+    }
+    if (data.error) { alert(data.error); return; }
+
+    const icon = MINE_ICONS[mine.type];
+    alert(`🎒 Получено: ${data.earned} × ${icon.label}`);
+    document.getElementById('mining-collect-btn').style.display = 'none';
+    document.getElementById('mining-start-btn').style.display = 'block';
+    activeMiningMineId = null;
+    window._activeSession = null;
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
   }
-  if (data.error) { alert(data.error); return; }
-
-  const icon = MINE_ICONS[mine.type];
-  alert(`🎒 Получено: ${data.earned} × ${icon.label}`);
-  document.getElementById('mining-collect-btn').style.display = 'none';
-  document.getElementById('mining-start-btn').style.display = 'block';
-  activeMiningMineId = null;
-  window._activeSession = null;
-  await loadPlayerDataOnly();
 }
 
 function closeMiningModal() {
@@ -2468,77 +2497,104 @@ async function fetchActiveReconstructSession(mineId) {
 }
 
 async function abandonMine() {
-  if (!selectedMine) return;
+  if (!selectedMine || _actionLock) return;
   if (!confirm('Вы уверены? Шахта станет свободной.')) return;
+  const mineId = selectedMine.id; // сохраняем до closeMineModal
 
-  const res = await fetch(`${API_URL}/mine/abandon`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
-  });
-  const data = await res.json();
-  if (data.error) { alert(data.error); return; }
-  alert('✅ Вы отказались от шахты');
-  closeMineModal();
-  await updateWorld();
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/abandon`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert('✅ Вы отказались от шахты');
+    closeMineModal();
+    await updateWorld();
+    await loadPlayerAssets(); // БАГ БЫЛ ЗДЕСЬ — раньше не вызывалось
+  } finally {
+    hideActionLoader();
+  }
 }
 
 async function startReconstruct() {
-  if (!selectedMine) return;
+  if (!selectedMine || _actionLock) return;
   if (!confirm('Запустить реконструкцию? Займёт 3 суток (можно ускорить до 24ч за 500 камня).')) return;
+  const mineId = selectedMine.id; // сохраняем до await
 
-  const res = await fetch(`${API_URL}/mine/reconstruct`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: selectedMine.id })
-  });
-  const data = await res.json();
-  if (data.error) {
-    const msgs = {
-      MINE_NOT_EMPTY: 'В шахте ещё есть ресурсы',
-      ALREADY_HAS_SESSION: 'У вас уже есть активная сессия'
-    };
-    alert(msgs[data.error] || data.error);
-    return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/reconstruct`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        MINE_NOT_EMPTY: 'В шахте ещё есть ресурсы',
+        ALREADY_HAS_SESSION: 'У вас уже есть активная сессия'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert('🔄 Реконструкция запущена! Завершится через 3 суток.');
+    await openMineModal(mineId);
+  } finally {
+    hideActionLoader();
   }
-  alert('🔄 Реконструкция запущена! Завершится через 3 суток.');
-  openMineModal(selectedMine.id);
 }
 
 async function speedupReconstruct(mineId) {
+  if (_actionLock) return; // mineId приходит параметром, не из selectedMine
   if (!confirm('Ускорить реконструкцию до 24ч за 500 камня?')) return;
-  const res = await fetch(`${API_URL}/mine/reconstruct/speedup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
-  });
-  const data = await res.json();
-  if (data.error) {
-    const msgs = {
-      NOT_ENOUGH_STONE: 'Нужно 500 камня',
-      ALREADY_FAST: 'Уже ускорено'
-    };
-    alert(msgs[data.error] || data.error);
-    return;
-  }
-  alert('⚡ Ускорено! Завершится через 24ч.');
-  openMineModal(mineId);
-}
 
-async function collectReconstruct(mineId) {
-  const res = await fetch(`${API_URL}/mine/reconstruct/collect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
-  });
-  const data = await res.json();
-  if (data.error === 'NOT_FINISHED') {
-    alert('Реконструкция ещё не завершена');
-    return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/reconstruct/speedup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_STONE: 'Нужно 500 камня',
+        ALREADY_FAST: 'Уже ускорено'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert('⚡ Ускорено! Завершится через 24ч.');
+    await openMineModal(mineId);
+  } finally {
+    hideActionLoader();
   }
-  if (data.error) { alert(data.error); return; }
-  alert(`✅ Шахта восстановлена! Ресурсов: ${data.resources_restored}`);
-  openMineModal(mineId);
+}
+  
+async function collectReconstruct(mineId) {
+  if (_actionLock) return; // mineId приходит параметром
+
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/mine/reconstruct/collect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, mine_id: mineId })
+    });
+    const data = await res.json();
+    if (data.error === 'NOT_FINISHED') {
+      alert('Реконструкция ещё не завершена');
+      return;
+    }
+    if (data.error) { alert(data.error); return; }
+    alert(`✅ Шахта восстановлена! Ресурсов: ${data.resources_restored}`);
+    await openMineModal(mineId);
+  } finally {
+    hideActionLoader();
+  }
 }
 
 function centerOnTile(tx, ty) {
@@ -2616,21 +2672,26 @@ async function loadPlayerAssets() {
 }
 
 async function collectTowerIncome() {
+  if (_actionLock) return;
   const section = document.getElementById('tower-income-section');
   const tower_id = section.dataset.towerId;
   if (!tower_id) return;
 
-  const res = await fetch(`${API_URL}/tower/income/collect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: currentUserId, tower_id: Number(tower_id) })
-  });
-  const data = await res.json();
-  if (data.error) { alert(data.error); return; }
-
-  alert(`✅ Получено: ${data.collected.toFixed(4)} DC`);
-  section.style.display = 'none';
-  await loadPlayerDataOnly();
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/tower/income/collect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, tower_id: Number(tower_id) })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert(`✅ Получено: ${data.collected.toFixed(4)} DC`);
+    section.style.display = 'none';
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
 }
 
 loadPlayer();
