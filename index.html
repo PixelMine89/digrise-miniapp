@@ -2218,10 +2218,9 @@ if (isStarter && !isCollapsed && mine.resources_left > 0) {
 }
 
 async function checkActiveLicense(mineId) {
-  // Пробуем просто показать кнопку войти если сервер даст добро
-  // Реальная проверка произойдёт при нажатии Enter
+  // Показываем Enter кнопку — реальная проверка на сервере при нажатии
+  // Лицензионные кнопки НЕ скрываем — пусть игрок видит варианты покупки
   document.getElementById('mine-enter-btn').style.display = 'block';
-  document.getElementById('mine-license-section').style.display = 'none';
 }
 
 function closeMineModal() {
@@ -2457,7 +2456,7 @@ async function collectResources() {
 
     if (data.error === 'MINE_COLLAPSED') {
       alert('💥 Шахта обвалилась во время добычи! Закрыта на 12 часов.');
-      activeMiningMineId = null; // БАГ БЫЛ ЗДЕСЬ — раньше не обнулялось
+      activeMiningMineId = null;
       closeMiningModal();
       await loadPlayerAssets();
       return;
@@ -2465,7 +2464,8 @@ async function collectResources() {
     if (data.error) { alert(data.error); return; }
 
     const icon = MINE_ICONS[mine.type];
-    alert(`🎒 Получено: ${data.earned} × ${icon.label}`);
+    const stoneStr = data.stone_earned > 0 ? `\n+${data.stone_earned} 🪨 Камень` : '';
+    alert(`🎒 Получено: ${data.earned} × ${icon.label}${stoneStr}`);
     document.getElementById('mining-collect-btn').style.display = 'none';
     document.getElementById('mining-start-btn').style.display = 'block';
     activeMiningMineId = null;
