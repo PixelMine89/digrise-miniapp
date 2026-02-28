@@ -2207,7 +2207,7 @@ if (isStarter && !isCollapsed && mine.resources_left > 0) {
 } else if (isOwner && !isCollapsed && mine.resources_left > 0) {
   enterBtn.style.display = 'block';
   enterBtn.innerText = '▶ Войти в шахту';
-} else if (!isOwner && !isStarter && mine.owner_id) {
+} else if (!isOwner && !isStarter && mine.owner_id && !isCollapsed && mine.resources_left > 0) {
   enterBtn.style.display = 'none';
   checkActiveLicense(mine.id);
 } else {
@@ -2610,11 +2610,11 @@ async function loadPlayerAssets() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
 
-    // Восстанавливаем метку активной шахты после перезагрузки
-    if (data.active_session && data.active_session.mine_id) {
-      activeMiningMineId = data.active_session.mine_id;
-      drawWorld();
-    }
+    const newActiveId = data.active_session?.mine_id || null;
+if (newActiveId !== activeMiningMineId) {
+  activeMiningMineId = newActiveId;
+  drawWorld();
+}
 
     // === МОИ ПРЕДПРИЯТИЯ (шахты) ===
     const minesList = document.getElementById('my-assets-list');
