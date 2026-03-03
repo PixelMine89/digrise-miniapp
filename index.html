@@ -2697,16 +2697,12 @@ if (newActiveId !== activeMiningMineId) {
     }
 
     // === МОИ БАШНИ ===
-    const towersList = document.getElementById('my-towers-list');
-    if (!data.towers || data.towers.length === 0) {
-      towersList.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Вы ещё не строили башни</div>`;
-    } else {
-      towersList.innerHTML = data.towers.map(t => {
+    towersList.innerHTML = data.towers.map(t => {
   const myPct = Math.round((t.contributed / t.required) * 100);
-  const totalPct = Math.round((t.contributed / t.required) * 100); // мой вклад к стоимости
+  const totalPct = Math.round((t.current / t.required) * 100);
   const statusLabel = t.completed
     ? `✅ Достроена &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`
-    : `🔨 Всего: ${Math.round((t.contributed / t.required) * 100)}% &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`;
+    : `🔨 Всего: ${totalPct}% &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`;
   const incomeStr = t.pending_income > 0
     ? `&nbsp;|&nbsp;<span style="color:#f5c77a;">💰 ${t.pending_income.toFixed(2)} DC</span>`
     : '';
