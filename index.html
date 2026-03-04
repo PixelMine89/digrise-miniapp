@@ -2697,25 +2697,30 @@ if (newActiveId !== activeMiningMineId) {
     }
 
     // === МОИ БАШНИ ===
+    const towersList = document.getElementById('my-towers-list');
+    if (!data.towers || data.towers.length === 0) {
+      towersList.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Вы ещё не строили башни</div>`;
+    } else {
     towersList.innerHTML = data.towers.map(t => {
-  const myPct = Math.round((t.contributed / t.required) * 100);
-  const totalPct = Math.round((t.current / t.required) * 100);
-  const statusLabel = t.completed
-    ? `✅ Достроена &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`
-    : `🔨 Всего: ${totalPct}% &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`;
-  const incomeStr = t.pending_income > 0
-    ? `&nbsp;|&nbsp;<span style="color:#f5c77a;">💰 ${t.pending_income.toFixed(2)} DC</span>`
-    : '';
-  return `
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid ${t.completed ? '#4cd964' : '#4fdcff'};">
-      <div>
-        <div style="font-size:13px; font-weight:600;">Башня #${t.tower_id}</div>
-        <div style="font-size:11px; color:var(--muted);">${statusLabel}${incomeStr}</div>
-      </div>
-      <button onclick="centerOnTile(${t.x},${t.y})" style="padding:6px 10px; font-size:16px; background:rgba(255,255,255,0.07); border-radius:8px; min-width:36px;">📍</button>
-    </div>`;
-}).join('');
-    }
+      const myPct = Math.round((t.contributed / t.required) * 100);
+        const totalPct = Math.round((t.current / t.required) * 100);
+        const statusLabel = t.completed
+          ? `✅ Достроена &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`
+          : `🔨 Всего: ${totalPct}% &nbsp;|&nbsp; Мой вклад: <b>${myPct}%</b>`;
+        const incomeStr = t.pending_income > 0
+          ? `&nbsp;|&nbsp;<span style="color:#f5c77a;">💰 ${t.pending_income.toFixed(2)} DC</span>`
+          : '';
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid ${t.completed ? '#4cd964' : '#4fdcff'};">
+            <div>
+              <div style="font-size:13px; font-weight:600;">Башня #${t.tower_id}</div>
+              <div style="font-size:11px; color:var(--muted);">${statusLabel}${incomeStr}</div>
+            </div>
+            <button onclick="centerOnTile(${t.x},${t.y})" style="padding:6px 10px; font-size:16px; background:rgba(255,255,255,0.07); border-radius:8px; min-width:36px;">📍</button>
+          </div>`;
+      }).join('');
+    }  // конец else башен
+
   } catch(e) {
     console.error('loadPlayerAssets error:', e);
     document.getElementById('my-assets-list').innerHTML =
