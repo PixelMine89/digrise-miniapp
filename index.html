@@ -318,6 +318,37 @@ button:disabled {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== CRAFT ===== */
+.craft-filter-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  padding: 7px 4px;
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.craft-filter-btn.active {
+  background: rgba(245,199,122,0.15);
+  color: var(--accent);
+  font-weight: 700;
+}
+.craft-timer-bar {
+  height: 6px;
+  background: #1b2032;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.craft-timer-fill {
+  height: 100%;
+  background: #4fdcff;
+  border-radius: 4px;
+  transition: width 1s linear;
+}
   </style>
 </head>
 <body>
@@ -370,9 +401,41 @@ button:disabled {
     </div>
   </div>
   
-  <!-- ===== CRAFT (Печь + Экип) ===== -->
+  <!-- ===== CRAFT ===== -->
   <div id="tab-craft" class="tab">
-    <!-- тут будет крафт, ресурсы и другие новые механики-->
+
+    <!-- МОЯ КИРКА -->
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px; padding:0 2px;">⛏️ Моя кирка</div>
+      <div id="craft-pickaxe-info" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+
+    <!-- МОИ ЗАКАЗЫ (как клиент) -->
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px; padding:0 2px;">📦 Мои заказы</div>
+      <div id="craft-my-orders" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+
+    <!-- МОЯ РАБОТА (как работник) -->
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px; padding:0 2px;">🔨 Моя работа</div>
+      <div id="craft-worker-status" style="display:flex; flex-direction:column; gap:6px;"></div>
+    </div>
+
+    <!-- КОМПАНИИ -->
+    <div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 2px;">
+        <div style="font-weight:700; font-size:14px;">🏭 Компании</div>
+        <button onclick="openCreateCompany()" style="padding:6px 14px; font-size:12px; border-radius:10px;">+ Создать</button>
+      </div>
+      <!-- Фильтр -->
+      <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <div class="craft-filter-btn active" onclick="setCraftFilter('all')" data-filter="all">Все</div>
+        <div class="craft-filter-btn" onclick="setCraftFilter('smelter')" data-filter="smelter">🔥 Плавильни</div>
+        <div class="craft-filter-btn" onclick="setCraftFilter('forge')" data-filter="forge">⚒️ Кузницы</div>
+      </div>
+      <div id="craft-companies-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
   </div>
 
 <!-- ===== MARKET ===== -->
@@ -729,6 +792,102 @@ button:disabled {
     <button onclick="closeMiningModal()" style="width:100%; background:#333; color:#fff;">← Выйти из шахты</button>
   </div>
 </div>
+  <!-- МОДАЛКА КОМПАНИИ -->
+<div id="company-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:9999;">
+  <div class="box" style="max-width:340px; width:90%; max-height:82vh; display:flex; flex-direction:column; gap:8px;">
+    <h3 id="company-modal-title" style="text-align:center; margin:0;"></h3>
+    <div id="company-modal-quality" style="text-align:center; font-size:12px; color:var(--muted);"></div>
+
+    <!-- Статы компании -->
+    <div id="company-modal-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px;"></div>
+
+    <!-- Скролл контент -->
+    <div style="overflow-y:auto; display:flex; flex-direction:column; gap:8px; flex:1;">
+
+      <!-- Секция: купить лицензию работника -->
+      <div id="company-worker-license-section" style="display:none; padding:10px; background:rgba(79,220,255,0.07); border:1px solid rgba(79,220,255,0.2); border-radius:10px;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">🔑 Лицензия работника (7 дней):</div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span id="company-license-price" style="font-size:14px; font-weight:700; color:#4fdcff;"></span>
+          <button onclick="buyWorkerLicense()" style="padding:6px 14px; font-size:12px; background:linear-gradient(180deg,#4fdcff,#2aa8cc); color:#000; font-weight:700; border-radius:10px;">Купить</button>
+        </div>
+      </div>
+
+      <!-- Статус работника -->
+      <div id="company-my-worker-status" style="display:none; padding:10px; background:rgba(76,217,100,0.07); border:1px solid rgba(76,217,100,0.2); border-radius:10px; font-size:12px;"></div>
+
+      <!-- Мой активный заказ (как работник) -->
+      <div id="company-my-worker-order" style="display:none; padding:10px; background:rgba(245,199,122,0.07); border:1px solid rgba(245,199,122,0.2); border-radius:10px;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">⚙️ Мой текущий заказ:</div>
+        <div id="company-worker-order-info" style="font-size:13px;"></div>
+        <div class="craft-timer-bar"><div id="company-worker-timer-fill" class="craft-timer-fill" style="width:0%"></div></div>
+        <div id="company-worker-timer-label" style="font-size:12px; text-align:center; margin-top:4px; color:var(--accent);"></div>
+        <button id="company-complete-btn" onclick="completeWorkerOrder()" style="display:none; width:100%; margin-top:8px; background:linear-gradient(180deg,#4cd964,#2ea84e); color:#fff; border-radius:10px; padding:8px; font-size:12px;">✅ Сдать заказ</button>
+      </div>
+
+      <!-- Заказы в очереди (для работника) -->
+      <div id="company-pending-orders-section" style="display:none;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">📋 Очередь заказов:</div>
+        <div id="company-pending-orders-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
+      <!-- Создать заказ (для клиента) -->
+      <div id="company-order-section">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">📦 Разместить заказ:</div>
+        <div id="company-recipes-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
+      <!-- Кнопка настроек лидера -->
+      <button id="company-settings-btn" onclick="openCompanySettings()" style="display:none; width:100%; background:linear-gradient(180deg,#6a5acd,#483d8b); color:#fff; border-radius:10px; padding:10px; font-size:13px;">⚙️ Настройки компании</button>
+
+    </div>
+
+    <button onclick="closeCompanyModal()" style="width:100%; background:#333; color:#fff; border-radius:14px; padding:10px;">Закрыть</button>
+  </div>
+</div>
+
+<!-- МОДАЛКА СОЗДАТЬ КОМПАНИЮ -->
+<div id="create-company-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:9999;">
+  <div class="box" style="max-width:340px; width:90%; display:flex; flex-direction:column; gap:10px;">
+    <h3 style="text-align:center; margin:0;">🏭 Создать компанию</h3>
+    <div style="font-size:12px; color:var(--muted);">
+      Плавильня: 2,000 🪨 + 100 DC<br>
+      Кузница: 3,000 🪨 + 150 DC
+    </div>
+    <input id="create-company-name" type="text" placeholder="Название (до 30 символов)" maxlength="30"
+      style="width:100%; padding:10px; border-radius:10px; border:none; font-size:13px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <button onclick="createCompany('smelter')" style="padding:12px; font-size:13px; border-radius:12px;">
+        🔥 Плавильня
+      </button>
+      <button onclick="createCompany('forge')" style="padding:12px; font-size:13px; border-radius:12px;">
+        ⚒️ Кузница
+      </button>
+    </div>
+    <button onclick="closeCreateCompany()" style="width:100%; background:#333; color:#fff; border-radius:14px; padding:10px;">Отмена</button>
+  </div>
+</div>
+
+<!-- МОДАЛКА НАСТРОЕК КОМПАНИИ -->
+<div id="company-settings-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:10000;">
+  <div class="box" style="max-width:340px; width:90%; display:flex; flex-direction:column; gap:10px;">
+    <h3 style="text-align:center; margin:0;">⚙️ Настройки</h3>
+    <div style="font-size:12px; color:var(--muted);">Название:</div>
+    <input id="settings-name" type="text" maxlength="30"
+      style="width:100%; padding:10px; border-radius:10px; border:none; font-size:13px;">
+    <div style="font-size:12px; color:var(--muted);">Цена лицензии работника (DC):<br><span style="font-size:11px;">Мин: 0, Макс: 1000</span></div>
+    <input id="settings-license-price" type="number" min="0" max="1000"
+      style="width:100%; padding:10px; border-radius:10px; border:none; font-size:13px;">
+    <div style="font-size:12px; color:var(--muted);">Ставка работника (доля от заказа):<br><span style="font-size:11px;">Мин: 40%, Макс: 80%</span></div>
+    <input id="settings-worker-rate" type="number" min="40" max="80" step="5"
+      style="width:100%; padding:10px; border-radius:10px; border:none; font-size:13px;">
+    <div style="font-size:12px; color:var(--muted);">Наценка на заказы:<br><span style="font-size:11px;">0.5× — 2.0× от базовой цены</span></div>
+    <input id="settings-price-multiplier" type="number" min="0.5" max="2.0" step="0.1"
+      style="width:100%; padding:10px; border-radius:10px; border:none; font-size:13px;">
+    <button onclick="saveCompanySettings()" style="width:100%; padding:12px; border-radius:14px;">💾 Сохранить</button>
+    <button onclick="closeCompanySettings()" style="width:100%; background:#333; color:#fff; border-radius:14px; padding:10px;">Отмена</button>
+  </div>
+</div>
   <!-- ===== NAV ===== -->
   <div class="nav-wrapper">
     <div class="nav">
@@ -800,6 +959,9 @@ if (navBtn) {
 
 if (tab === "tasks") {
   loadTasks();
+}
+if (tab === "craft") {
+  loadCraft();
 }
 
 }
@@ -2748,6 +2910,569 @@ async function collectTowerIncome() {
     alert(`✅ Получено: ${data.collected.toFixed(4)} DC`);
     section.style.display = 'none';
     await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+// ===== CRAFT CONSTANTS =====
+const RECIPES_CLIENT = {
+  copper_ingot:  { company_type:'smelter', label:'🟠 Медный слиток',   resources:{ copper:5, coal:2 },              basePrice:3   },
+  iron_ingot:    { company_type:'smelter', label:'⚙️ Железный слиток', resources:{ iron:5, coal:3 },                basePrice:5   },
+  gold_ingot:    { company_type:'smelter', label:'🌕 Золотой слиток',  resources:{ gold:4, coal:4 },                basePrice:12  },
+  diamond_ingot: { company_type:'smelter', label:'💎 Алмазный слиток', resources:{ diamond:3, coal:5 },             basePrice:30  },
+  copper_pick:   { company_type:'forge',   label:'🟠 Медная кирка',    resources:{ copper_ingot:3 },                basePrice:8   },
+  iron_pick:     { company_type:'forge',   label:'⚙️ Железная кирка', resources:{ iron_ingot:3 },                  basePrice:18  },
+  gold_pick:     { company_type:'forge',   label:'🌕 Золотая кирка',   resources:{ gold_ingot:2 },                  basePrice:45  },
+  diamond_pick:  { company_type:'forge',   label:'💎 Алмазная кирка',  resources:{ diamond_ingot:2, gold_ingot:1 }, basePrice:110 },
+};
+
+const RESOURCE_LABELS = {
+  stone:'🪨 Камень', coal:'🪨 Уголь', copper:'🟠 Медь', iron:'⚙️ Железо',
+  gold:'🌕 Золото', diamond:'💎 Алмаз',
+  copper_ingot:'🟠 Мед.слиток', iron_ingot:'⚙️ Жел.слиток',
+  gold_ingot:'🌕 Зол.слиток', diamond_ingot:'💎 Алм.слиток'
+};
+
+const QUALITY_EFFECTS_CLIENT = {
+  0:{ successChance:0.25, timeMultiplier:4.0 },
+  1:{ successChance:0.50, timeMultiplier:2.0 },
+  2:{ successChance:0.58, timeMultiplier:1.8 },
+  3:{ successChance:0.65, timeMultiplier:1.6 },
+  4:{ successChance:0.72, timeMultiplier:1.4 },
+  5:{ successChance:0.78, timeMultiplier:1.2 },
+  6:{ successChance:0.83, timeMultiplier:1.1 },
+  7:{ successChance:0.88, timeMultiplier:1.0 },
+  8:{ successChance:0.92, timeMultiplier:0.9 },
+  9:{ successChance:0.96, timeMultiplier:0.8 },
+  10:{ successChance:0.99, timeMultiplier:0.7 },
+};
+
+let craftCompaniesCache = [];
+let craftFilter = 'all';
+let selectedCompany = null;
+let craftWorkerTimerInterval = null;
+let craftPlayerData = null;
+
+// =======================
+// CRAFT FUNCTIONS
+// =======================
+
+async function loadCraft() {
+  try {
+    const [companiesRes, playerRes] = await Promise.all([
+      fetch(`${API_URL}/craft/companies`),
+      fetch(`${API_URL}/player/craft?user_id=${currentUserId}`)
+    ]);
+    craftCompaniesCache = await companiesRes.json();
+    craftPlayerData = await playerRes.json();
+
+    renderCraftPickaxe();
+    renderCraftMyOrders();
+    renderCraftWorkerStatus();
+    renderCraftCompanies();
+  } catch(e) {
+    console.error('loadCraft error:', e);
+  }
+}
+
+function renderCraftPickaxe() {
+  const el = document.getElementById('craft-pickaxe-info');
+  const items = craftPlayerData?.items || [];
+  if (!items.length) {
+    el.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Нет кирок. Закажи в Кузнице!</div>`;
+    return;
+  }
+  el.innerHTML = items.map(it => {
+    const defLabel = it.is_defective ? ' <span style="color:#ff6b6b;">[Брак]</span>' : '';
+    const durPct = Math.round((it.durability / it.max_durability) * 100);
+    const durColor = durPct > 60 ? '#4cd964' : durPct > 30 ? '#f5c77a' : '#ff6b6b';
+    return `
+      <div style="padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid #4fdcff;">
+        <div style="font-size:13px; font-weight:600;">${RECIPES_CLIENT[it.item_type]?.label || it.item_type}${defLabel}</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:3px;">
+          +${it.bonus_mining}% добычи &nbsp;|&nbsp;
+          Прочность: <span style="color:${durColor}">${it.durability}/${it.max_durability}</span>
+        </div>
+        <div style="background:#1b2032; border-radius:4px; height:4px; margin-top:5px; overflow:hidden;">
+          <div style="height:100%; width:${durPct}%; background:${durColor}; border-radius:4px;"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderCraftMyOrders() {
+  const el = document.getElementById('craft-my-orders');
+  const orders = [...(craftPlayerData?.clientOrders || []), ...(craftPlayerData?.doneOrders || [])];
+  if (!orders.length) {
+    el.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Нет активных заказов</div>`;
+    return;
+  }
+  const now = Date.now();
+  el.innerHTML = orders.map(o => {
+    const recipe = RECIPES_CLIENT[o.recipe];
+    const statusMap = { pending:'⏳ Ожидает работника', in_progress:'⚙️ Выполняется', done:'✅ Готово' };
+    const statusColor = { pending:'#f5c77a', in_progress:'#4fdcff', done:'#4cd964' };
+    let extra = '';
+    if (o.status === 'in_progress' && o.ends_at) {
+      const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
+      const rem = Math.max(0, o.ends_at - now);
+      const mins = Math.floor(rem / 60000);
+      const secs = Math.floor((rem % 60000) / 1000);
+      extra = `
+        <div class="craft-timer-bar"><div class="craft-timer-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:11px; color:var(--muted); margin-top:2px;">
+          ${rem > 0 ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с` : 'Почти готово...'}
+        </div>`;
+    }
+    if (o.status === 'done' && o.result) {
+      const result = typeof o.result === 'string' ? JSON.parse(o.result) : o.result;
+      if (result.type === 'pickaxe') {
+        extra = `<div style="font-size:11px; color:${result.success ? '#4cd964' : '#f5c77a'}; margin-top:2px;">
+          ${result.success ? `✅ +${result.bonus_mining}% добычи, прочность ${result.durability}` : `⚠️ Брак: +${result.bonus_mining}% добычи, прочность ${result.durability}`}
+        </div>`;
+      } else {
+        extra = `<div style="font-size:11px; color:${result.success ? '#4cd964' : '#ff6b6b'}; margin-top:2px;">
+          ${result.success ? '✅ Слиток получен!' : '❌ Провал крафта'}
+        </div>`;
+      }
+    }
+    return `
+      <div style="padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid ${statusColor[o.status] || '#555'};">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:13px; font-weight:600;">${recipe?.label || o.recipe}</div>
+          <div style="font-size:11px; color:${statusColor[o.status]};">${statusMap[o.status]}</div>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:2px;">Оплачено: ${o.dc_paid} DC</div>
+        ${extra}
+      </div>`;
+  }).join('');
+}
+
+function renderCraftWorkerStatus() {
+  const el = document.getElementById('craft-worker-status');
+  const workerIn = craftPlayerData?.workerIn || [];
+  const myOrder = craftPlayerData?.myWorkerOrder;
+  const myCompany = craftPlayerData?.myCompany;
+
+  if (!workerIn.length && !myCompany) {
+    el.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Вы не работаете ни в одной компании</div>`;
+    return;
+  }
+
+  let html = '';
+
+  if (myCompany) {
+    html += `<div style="padding:10px 12px; background:rgba(245,199,122,0.07); border:1px solid rgba(245,199,122,0.2); border-radius:12px;">
+      <div style="font-size:13px; font-weight:600;">👑 Ваша компания: ${myCompany.name}</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:2px;">Фонд: ${(myCompany.fund_dc||0).toFixed(2)} DC</div>
+    </div>`;
+  }
+
+  workerIn.forEach(w => {
+    const expDate = new Date(w.license_expires_at).toLocaleDateString('ru');
+    const isExpired = w.license_expires_at < Date.now();
+    html += `<div style="padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid #4fdcff;">
+      <div style="font-size:13px; font-weight:600;">${w.company_name}</div>
+      <div style="font-size:11px; color:var(--muted);">
+        XP: ${w.xp} &nbsp;|&nbsp;
+        Лицензия: <span style="color:${isExpired ? '#ff6b6b' : '#4cd964'}">${isExpired ? 'Истекла!' : `до ${expDate}`}</span>
+      </div>
+    </div>`;
+  });
+
+  if (myOrder) {
+    const now = Date.now();
+    const recipe = RECIPES_CLIENT[myOrder.recipe];
+    const pct = Math.min(100, Math.round(((now - myOrder.taken_at) / (myOrder.ends_at - myOrder.taken_at)) * 100));
+    const rem = Math.max(0, myOrder.ends_at - now);
+    const mins = Math.floor(rem / 60000);
+    const secs = Math.floor((rem % 60000) / 1000);
+    const isReady = rem <= 0;
+    html += `<div style="padding:10px 12px; background:rgba(79,220,255,0.07); border:1px solid rgba(79,220,255,0.2); border-radius:12px;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">⚙️ Активный заказ в ${myOrder.company_name}:</div>
+      <div style="font-size:13px; font-weight:600;">${recipe?.label || myOrder.recipe}</div>
+      <div class="craft-timer-bar"><div class="craft-timer-fill" style="width:${pct}%"></div></div>
+      <div style="font-size:11px; color:var(--accent); text-align:center; margin-top:3px;">
+        ${isReady ? '✅ Готово — открой компанию и сдай' : `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с`}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function setCraftFilter(filter) {
+  craftFilter = filter;
+  document.querySelectorAll('.craft-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filter);
+  });
+  renderCraftCompanies();
+}
+
+function renderCraftCompanies() {
+  const el = document.getElementById('craft-companies-list');
+  let list = craftCompaniesCache;
+  if (craftFilter !== 'all') list = list.filter(c => c.type === craftFilter);
+  if (!list.length) {
+    el.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Нет компаний</div>`;
+    return;
+  }
+  el.innerHTML = list.map(c => {
+    const typeIcon = c.type === 'smelter' ? '🔥' : '⚒️';
+    const qualityColor = c.quality >= 7 ? '#4cd964' : c.quality >= 4 ? '#f5c77a' : '#9aa0b4';
+    const stateLabel = c.is_state ? ' <span style="font-size:10px; color:var(--muted);">[Гос.]</span>' : '';
+    return `
+      <div onclick="openCompanyModal(${c.id})" style="padding:12px; background:var(--panel); border-radius:12px; cursor:pointer; border-left:3px solid ${c.is_state ? '#9aa0b4' : '#4fdcff'};">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:13px; font-weight:600;">${typeIcon} ${c.name}${stateLabel}</div>
+          <div style="font-size:12px; font-weight:700; color:${qualityColor};">Q${c.quality}</div>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:3px;">
+          Шанс: ${Math.round(c.successChance*100)}% &nbsp;|&nbsp;
+          Работников: ${c.activeWorkers} &nbsp;|&nbsp;
+          Очередь: ${c.pendingOrders}
+          ${!c.is_state ? `&nbsp;|&nbsp; Наценка: ×${c.price_multiplier}` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===== COMPANY MODAL =====
+
+let _companyWorkerTimerInterval = null;
+
+async function openCompanyModal(companyId) {
+  if (_actionLock) return;
+  const res = await fetch(`${API_URL}/craft/company/${companyId}?user_id=${currentUserId}`);
+  const company = await res.json();
+  selectedCompany = company;
+
+  document.getElementById('company-modal-title').innerText = company.name;
+
+  const qualityColor = company.quality >= 7 ? '#4cd964' : company.quality >= 4 ? '#f5c77a' : '#9aa0b4';
+  document.getElementById('company-modal-quality').innerHTML =
+    `Качество: <span style="color:${qualityColor}; font-weight:700;">Q${company.quality}</span>`;
+
+  document.getElementById('company-modal-stats').innerHTML = `
+    <div style="padding:6px 8px; background:var(--panel); border-radius:8px;">
+      ✅ Шанс: <b>${Math.round(company.successChance*100)}%</b>
+    </div>
+    <div style="padding:6px 8px; background:var(--panel); border-radius:8px;">
+      ⏱ Скорость: <b>×${company.timeMultiplier}</b>
+    </div>
+    <div style="padding:6px 8px; background:var(--panel); border-radius:8px;">
+      📦 Расход рес.: <b>×${company.resourceMultiplier}</b>
+    </div>
+    <div style="padding:6px 8px; background:var(--panel); border-radius:8px;">
+      💰 Ставка раб.: <b>${Math.round(company.worker_rate*100)}%</b>
+    </div>`;
+
+  const isLeader = String(company.leader_id) === String(currentUserId);
+  const isWorker = !!company.workerStatus && company.workerStatus.license_expires_at > Date.now();
+  const isState = !!company.is_state;
+
+  // Лицензия работника
+  const licenseSection = document.getElementById('company-worker-license-section');
+  if (!isState && !isLeader) {
+    licenseSection.style.display = 'block';
+    document.getElementById('company-license-price').innerText =
+      company.license_price > 0 ? `${company.license_price} DC` : 'Бесплатно';
+  } else {
+    licenseSection.style.display = 'none';
+  }
+
+  // Статус работника
+  const workerStatusEl = document.getElementById('company-my-worker-status');
+  if (company.workerStatus) {
+    const w = company.workerStatus;
+    const expDate = new Date(w.license_expires_at).toLocaleDateString('ru');
+    const expired = w.license_expires_at < Date.now();
+    workerStatusEl.style.display = 'block';
+    workerStatusEl.innerHTML = `
+      👷 Вы работник &nbsp;|&nbsp; XP: <b>${w.xp}</b><br>
+      Лицензия: <span style="color:${expired ? '#ff6b6b' : '#4cd964'}">${expired ? '❌ Истекла' : `✅ до ${expDate}`}</span>`;
+  } else {
+    workerStatusEl.style.display = 'none';
+  }
+
+  // Активный заказ работника
+  const workerOrderEl = document.getElementById('company-my-worker-order');
+  if (_companyWorkerTimerInterval) clearInterval(_companyWorkerTimerInterval);
+  if (company.myWorkerOrder) {
+    const o = company.myWorkerOrder;
+    workerOrderEl.style.display = 'block';
+    document.getElementById('company-worker-order-info').innerText =
+      RECIPES_CLIENT[o.recipe]?.label || o.recipe;
+    const completeBtn = document.getElementById('company-complete-btn');
+    function tickWorkerTimer() {
+      const now = Date.now();
+      const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
+      const rem = Math.max(0, o.ends_at - now);
+      document.getElementById('company-worker-timer-fill').style.width = pct + '%';
+      const mins = Math.floor(rem / 60000);
+      const secs = Math.floor((rem % 60000) / 1000);
+      document.getElementById('company-worker-timer-label').innerText =
+        rem > 0 ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с` : '✅ Готово!';
+      if (rem <= 0) {
+        clearInterval(_companyWorkerTimerInterval);
+        completeBtn.style.display = 'block';
+      }
+    }
+    tickWorkerTimer();
+    _companyWorkerTimerInterval = setInterval(tickWorkerTimer, 1000);
+  } else {
+    workerOrderEl.style.display = 'none';
+  }
+
+  // Очередь заказов (для работника с активной лицензией или лидера)
+  const pendingSection = document.getElementById('company-pending-orders-section');
+  const pendingList = document.getElementById('company-pending-orders-list');
+  if ((isWorker || isLeader) && !company.myWorkerOrder && company.pendingOrders?.length) {
+    pendingSection.style.display = 'block';
+    pendingList.innerHTML = company.pendingOrders.map(o => {
+      const recipe = RECIPES_CLIENT[o.recipe];
+      return `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--panel); border-radius:10px;">
+          <div>
+            <div style="font-size:13px; font-weight:600;">${recipe?.label || o.recipe}</div>
+            <div style="font-size:11px; color:var(--muted);">Заказчик #${o.client_id}</div>
+          </div>
+          <button onclick="takeOrder(${o.id})" style="padding:6px 12px; font-size:12px; border-radius:10px;">▶ Взять</button>
+        </div>`;
+    }).join('');
+  } else {
+    pendingSection.style.display = 'none';
+  }
+
+  // Рецепты (для клиента — всегда видны)
+  const recipesEl = document.getElementById('company-recipes-list');
+  const companyRecipes = Object.entries(RECIPES_CLIENT).filter(([, r]) => r.company_type === company.type);
+  recipesEl.innerHTML = companyRecipes.map(([key, r]) => {
+    const price = Math.ceil(r.basePrice * company.price_multiplier * 100) / 100;
+    const resStr = Object.entries(r.resources)
+      .map(([res, qty]) => `${Math.ceil(qty * company.resourceMultiplier)} ${RESOURCE_LABELS[res] || res}`)
+      .join(', ');
+    return `
+      <div style="padding:10px; background:var(--panel); border-radius:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div style="font-size:13px; font-weight:600;">${r.label}</div>
+          <div style="font-size:12px; color:#f5c77a; font-weight:700;">${price} DC</div>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">Нужно: ${resStr}</div>
+        <button onclick="createOrder('${key}')" style="width:100%; padding:8px; font-size:12px; border-radius:10px;">📦 Заказать</button>
+      </div>`;
+  }).join('');
+
+  // Кнопка настроек (только лидер, не гос)
+  document.getElementById('company-settings-btn').style.display =
+    (isLeader && !isState) ? 'block' : 'none';
+
+  document.getElementById('company-modal').style.display = 'flex';
+}
+
+function closeCompanyModal() {
+  if (_companyWorkerTimerInterval) clearInterval(_companyWorkerTimerInterval);
+  document.getElementById('company-modal').style.display = 'none';
+  selectedCompany = null;
+}
+
+async function buyWorkerLicense() {
+  if (!selectedCompany || _actionLock) return;
+  const price = selectedCompany.license_price;
+  if (price > 0 && !confirm(`Купить лицензию работника на 7 дней за ${price} DC?`)) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/worker/license`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: selectedCompany.id })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { NOT_ENOUGH_DC:'Недостаточно DC', STATE_COMPANY:'Гос. компания', YOU_ARE_LEADER:'Вы лидер' };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const exp = new Date(data.expires_at).toLocaleDateString('ru');
+    alert(`✅ Лицензия куплена до ${exp}`);
+    closeCompanyModal();
+    await loadCraft();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function createOrder(recipe) {
+  if (!selectedCompany || _actionLock) return;
+  const r = RECIPES_CLIENT[recipe];
+  const price = Math.ceil(r.basePrice * selectedCompany.price_multiplier * 100) / 100;
+  const resStr = Object.entries(r.resources)
+    .map(([res, qty]) => `${Math.ceil(qty * selectedCompany.resourceMultiplier)} ${RESOURCE_LABELS[res]}`)
+    .join(', ');
+  if (!confirm(`Разместить заказ?\n${r.label}\nРесурсы: ${resStr}\nОплата: ${price} DC`)) return;
+  const companyId = selectedCompany.id;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/order/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: companyId, recipe })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_RESOURCES: `Недостаточно ресурсов (${RESOURCE_LABELS[data.resource] || data.resource}: нужно ${data.required}, есть ${data.have})`,
+        NOT_ENOUGH_DC: `Недостаточно DC (нужно ${data.required?.toFixed(2)})`,
+        WRONG_COMPANY_TYPE: 'Этот рецепт не для этой компании'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert(`✅ Заказ размещён! Оплачено: ${data.dc_paid} DC`);
+    closeCompanyModal();
+    await loadCraft();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function takeOrder(orderId) {
+  if (!selectedCompany || _actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/order/take`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, order_id: orderId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { ALREADY_HAS_ORDER:'У вас уже есть активный заказ', NOT_A_WORKER:'Нет лицензии работника', ORDER_EXPIRED:'Заказ истёк' };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const exp = new Date(data.ends_at).toLocaleTimeString('ru');
+    alert(`✅ Заказ взят! Будет готов в ${exp}`);
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function completeWorkerOrder() {
+  if (!selectedCompany || _actionLock) return;
+  const order = selectedCompany.myWorkerOrder;
+  if (!order) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/order/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, order_id: order.id })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { NOT_READY:'Заказ ещё не готов' };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const r = data.result;
+    let msg = '';
+    if (r.type === 'pickaxe') {
+      msg = r.success
+        ? `✅ Кирка готова!\n+${r.bonus_mining}% добычи\nПрочность: ${r.durability}`
+        : `⚠️ Брак!\nКирка слабее: +${r.bonus_mining}% добычи\nПрочность: ${r.durability}`;
+    } else {
+      msg = r.success ? '✅ Слиток успешно сделан!' : '❌ Крафт не удался. Клиент ничего не получил.';
+    }
+    alert(msg);
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+// ===== CREATE COMPANY =====
+function openCreateCompany() {
+  document.getElementById('create-company-name').value = '';
+  document.getElementById('create-company-modal').style.display = 'flex';
+}
+function closeCreateCompany() {
+  document.getElementById('create-company-modal').style.display = 'none';
+}
+
+async function createCompany(type) {
+  const name = document.getElementById('create-company-name').value.trim();
+  if (!name) { alert('Введите название'); return; }
+  const costMap = { smelter:'2,000 🪨 + 100 DC', forge:'3,000 🪨 + 150 DC' };
+  if (!confirm(`Создать ${type === 'smelter' ? 'Плавильню' : 'Кузницу'} "${name}"?\nСтоимость: ${costMap[type]}`)) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/company/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, type, name })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { NOT_ENOUGH_STONE:'Недостаточно камня', NOT_ENOUGH_DC:'Недостаточно DC', ALREADY_LEADER:'Вы уже являетесь лидером другой компании' };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert('✅ Компания создана!');
+    closeCreateCompany();
+    await loadCraft();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+// ===== COMPANY SETTINGS =====
+function openCompanySettings() {
+  if (!selectedCompany) return;
+  document.getElementById('settings-name').value = selectedCompany.name;
+  document.getElementById('settings-license-price').value = selectedCompany.license_price;
+  document.getElementById('settings-worker-rate').value = Math.round(selectedCompany.worker_rate * 100);
+  document.getElementById('settings-price-multiplier').value = selectedCompany.price_multiplier;
+  document.getElementById('company-settings-modal').style.display = 'flex';
+}
+function closeCompanySettings() {
+  document.getElementById('company-settings-modal').style.display = 'none';
+}
+
+async function saveCompanySettings() {
+  if (!selectedCompany || _actionLock) return;
+  const name = document.getElementById('settings-name').value.trim();
+  const licensePrice = parseFloat(document.getElementById('settings-license-price').value);
+  const workerRate = parseFloat(document.getElementById('settings-worker-rate').value) / 100;
+  const priceMultiplier = parseFloat(document.getElementById('settings-price-multiplier').value);
+  if (!name) { alert('Введите название'); return; }
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/company/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: currentUserId,
+        company_id: selectedCompany.id,
+        name, license_price: licensePrice, worker_rate: workerRate, price_multiplier: priceMultiplier
+      })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert('✅ Настройки сохранены');
+    closeCompanySettings();
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
   } finally {
     hideActionLoader();
   }
