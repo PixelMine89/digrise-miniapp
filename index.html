@@ -837,6 +837,18 @@ button:disabled {
         <div id="company-recipes-list" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
 
+      <!-- Заявки (только лидер) -->
+      <div id="company-applications-section" style="display:none;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">📬 Заявки на вступление:</div>
+        <div id="company-applications-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
+      <!-- Работники (только лидер) -->
+      <div id="company-workers-section" style="display:none;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">👷 Работники:</div>
+        <div id="company-workers-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
       <!-- Кнопка настроек лидера -->
       <button id="company-settings-btn" onclick="openCompanySettings()" style="display:none; width:100%; background:linear-gradient(180deg,#6a5acd,#483d8b); color:#fff; border-radius:10px; padding:10px; font-size:13px;">⚙️ Настройки компании</button>
 
@@ -962,6 +974,13 @@ if (tab === "tasks") {
 }
 if (tab === "craft") {
   loadCraft();
+  if (_craftLiveInterval) clearInterval(_craftLiveInterval);
+  if (_craftRefreshInterval) clearInterval(_craftRefreshInterval);
+  _craftLiveInterval = setInterval(tickCraftTimers, 1000);
+  _craftRefreshInterval = setInterval(loadCraft, 30000);
+} else {
+  if (_craftLiveInterval) { clearInterval(_craftLiveInterval); _craftLiveInterval = null; }
+  if (_craftRefreshInterval) { clearInterval(_craftRefreshInterval); _craftRefreshInterval = null; }
 }
 
 }
@@ -2953,10 +2972,45 @@ let craftFilter = 'all';
 let selectedCompany = null;
 let craftWorkerTimerInterval = null;
 let craftPlayerData = null;
+let _craftLiveInterval = null;
+let _craftRefreshInterval = null;
 
 // =======================
 // CRAFT FUNCTIONS
 // =======================
+
+function tickCraftTimers() {
+  const now = Date.now();
+  // Таймеры заказов клиента
+  if (craftPlayerData?.clientOrders) {
+    craftPlayerData.clientOrders.forEach(o => {
+      if (o.status !== 'in_progress' || !o.ends_at) return;
+      const bar = document.getElementById(`cot-bar-${o.id}`);
+      const lbl = document.getElementById(`cot-lbl-${o.id}`);
+      if (!bar || !lbl) return;
+      const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
+      const rem = Math.max(0, o.ends_at - now);
+      bar.style.width = pct + '%';
+      const mins = Math.floor(rem / 60000);
+      const secs = Math.floor((rem % 60000) / 1000);
+      lbl.innerText = rem > 0 ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с` : '✅ Завершается...';
+    });
+  }
+  // Таймер активного заказа работника
+  if (craftPlayerData?.myWorkerOrder) {
+    const o = craftPlayerData.myWorkerOrder;
+    const bar = document.getElementById('cws-bar');
+    const lbl = document.getElementById('cws-lbl');
+    if (bar && lbl) {
+      const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
+      const rem = Math.max(0, o.ends_at - now);
+      bar.style.width = pct + '%';
+      const mins = Math.floor(rem / 60000);
+      const secs = Math.floor((rem % 60000) / 1000);
+      lbl.innerText = rem > 0 ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с` : '✅ Готово — открой компанию и сдай';
+    }
+  }
+}
 
 async function loadCraft() {
   try {
@@ -3011,8 +3065,8 @@ function renderCraftMyOrders() {
   const now = Date.now();
   el.innerHTML = orders.map(o => {
     const recipe = RECIPES_CLIENT[o.recipe];
-    const statusMap = { pending:'⏳ Ожидает работника', in_progress:'⚙️ Выполняется', done:'✅ Готово' };
-    const statusColor = { pending:'#f5c77a', in_progress:'#4fdcff', done:'#4cd964' };
+    const statusMap = { pending:'⏳ Ожидает работника', in_progress:'⚙️ Выполняется', done:'✅ Готово', expired:'❌ Истёк (возврат)', abandoned:'❌ Брошен (возврат)', cancelled:'❌ Отменён (возврат)' };
+    const statusColor = { pending:'#f5c77a', in_progress:'#4fdcff', done:'#4cd964', expired:'#ff6b6b', abandoned:'#ff6b6b', cancelled:'#ff6b6b' };
     let extra = '';
     if (o.status === 'in_progress' && o.ends_at) {
       const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
@@ -3025,15 +3079,15 @@ function renderCraftMyOrders() {
           ${rem > 0 ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с` : 'Почти готово...'}
         </div>`;
     }
-    if (o.status === 'done' && o.result) {
-      const result = typeof o.result === 'string' ? JSON.parse(o.result) : o.result;
-      if (result.type === 'pickaxe') {
-        extra = `<div style="font-size:11px; color:${result.success ? '#4cd964' : '#f5c77a'}; margin-top:2px;">
-          ${result.success ? `✅ +${result.bonus_mining}% добычи, прочность ${result.durability}` : `⚠️ Брак: +${result.bonus_mining}% добычи, прочность ${result.durability}`}
-        </div>`;
-      } else {
-        extra = `<div style="font-size:11px; color:${result.success ? '#4cd964' : '#ff6b6b'}; margin-top:2px;">
-          ${result.success ? '✅ Слиток получен!' : '❌ Провал крафта'}
+    if (o.status === 'in_progress' && o.ends_at) {
+      const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
+      const rem = Math.max(0, o.ends_at - now);
+      const mins = Math.floor(rem / 60000);
+      const secs = Math.floor((rem % 60000) / 1000);
+      extra = `
+        <div class="craft-timer-bar"><div id="cot-bar-${o.id}" class="craft-timer-fill" style="width:${pct}%"></div></div>
+        <div id="cot-lbl-${o.id}" style="font-size:11px; color:var(--muted); margin-top:2px;">
+          ${rem > 0 ? `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с` : '✅ Завершается...'}
         </div>`;
       }
     }
@@ -3092,8 +3146,8 @@ function renderCraftWorkerStatus() {
     html += `<div style="padding:10px 12px; background:rgba(79,220,255,0.07); border:1px solid rgba(79,220,255,0.2); border-radius:12px;">
       <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">⚙️ Активный заказ в ${myOrder.company_name}:</div>
       <div style="font-size:13px; font-weight:600;">${recipe?.label || myOrder.recipe}</div>
-      <div class="craft-timer-bar"><div class="craft-timer-fill" style="width:${pct}%"></div></div>
-      <div style="font-size:11px; color:var(--accent); text-align:center; margin-top:3px;">
+      <div class="craft-timer-bar"><div id="cws-bar" class="craft-timer-fill" style="width:${pct}%"></div></div>
+      <div id="cws-lbl" style="font-size:11px; color:var(--accent); text-align:center; margin-top:3px;">
         ${isReady ? '✅ Готово — открой компанию и сдай' : `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с`}
       </div>
     </div>`;
@@ -3172,12 +3226,22 @@ async function openCompanyModal(companyId) {
   const isWorker = !!company.workerStatus && company.workerStatus.license_expires_at > Date.now();
   const isState = !!company.is_state;
 
-  // Лицензия работника
+  // Кнопка подачи заявки / статус заявки
   const licenseSection = document.getElementById('company-worker-license-section');
-  if (!isState && !isLeader) {
+  if (!isState && !isLeader && !isWorker) {
     licenseSection.style.display = 'block';
-    document.getElementById('company-license-price').innerText =
-      company.license_price > 0 ? `${company.license_price} DC` : 'Бесплатно';
+    const appStatus = company.myApplication?.status;
+    if (appStatus === 'pending') {
+      document.getElementById('company-license-price').innerText = '⏳ Заявка на рассмотрении';
+      licenseSection.querySelector('button').style.display = 'none';
+    } else {
+      const btnLabel = appStatus === 'rejected' ? '🔄 Подать заявку снова' : '📩 Подать заявку';
+      document.getElementById('company-license-price').innerHTML =
+        `Стоимость лицензии: <b>${company.license_price > 0 ? company.license_price + ' DC' : 'Бесплатно'}</b>`;
+      const btn = licenseSection.querySelector('button');
+      btn.style.display = 'block';
+      btn.innerText = btnLabel;
+    }
   } else {
     licenseSection.style.display = 'none';
   }
@@ -3264,6 +3328,43 @@ async function openCompanyModal(companyId) {
       </div>`;
   }).join('');
 
+// Заявки и список работников (только лидер)
+  const appSection = document.getElementById('company-applications-section');
+  const workersSection = document.getElementById('company-workers-section');
+  if (isLeader && !isState) {
+    // Заявки
+    if (company.applications?.length) {
+      appSection.style.display = 'block';
+      document.getElementById('company-applications-list').innerHTML = company.applications.map(a => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--panel); border-radius:10px;">
+          <div style="font-size:12px;">👤 Игрок #${a.user_id}</div>
+          <div style="display:flex; gap:6px;">
+            <button onclick="approveApplication(${a.id})" style="padding:5px 10px; font-size:11px; background:linear-gradient(180deg,#4cd964,#2ea84e); color:#fff; border-radius:8px;">✅</button>
+            <button onclick="rejectApplication(${a.id})" style="padding:5px 10px; font-size:11px; background:linear-gradient(180deg,#ff6b6b,#cc3333); color:#fff; border-radius:8px;">❌</button>
+          </div>
+        </div>`).join('');
+    } else {
+      appSection.style.display = 'none';
+    }
+    // Работники с кнопкой кика
+    if (company.workers?.length) {
+      workersSection.style.display = 'block';
+      document.getElementById('company-workers-list').innerHTML = company.workers.map(w => {
+        const expDate = new Date(w.license_expires_at).toLocaleDateString('ru');
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--panel); border-radius:10px;">
+            <div style="font-size:12px;">👤 #${w.user_id} &nbsp; XP:${w.xp} &nbsp; до ${expDate}</div>
+            <button onclick="kickWorker('${w.user_id}')" style="padding:5px 10px; font-size:11px; background:#333; color:#ff6b6b; border-radius:8px;">Кик</button>
+          </div>`;
+      }).join('');
+    } else {
+      workersSection.style.display = 'none';
+    }
+  } else {
+    appSection.style.display = 'none';
+    workersSection.style.display = 'none';
+  }
+
   // Кнопка настроек (только лидер, не гос)
   document.getElementById('company-settings-btn').style.display =
     (isLeader && !isState) ? 'block' : 'none';
@@ -3280,24 +3381,93 @@ function closeCompanyModal() {
 async function buyWorkerLicense() {
   if (!selectedCompany || _actionLock) return;
   const price = selectedCompany.license_price;
-  if (price > 0 && !confirm(`Купить лицензию работника на 7 дней за ${price} DC?`)) return;
+  const msg = price > 0
+    ? `Подать заявку в "${selectedCompany.name}"?\nПри одобрении лидером спишется ${price} DC`
+    : `Подать заявку в "${selectedCompany.name}"? (бесплатно)`;
+  if (!confirm(msg)) return;
   showActionLoader();
   try {
-    const res = await fetch(`${API_URL}/craft/worker/license`, {
+    const res = await fetch(`${API_URL}/craft/worker/apply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: currentUserId, company_id: selectedCompany.id })
     });
     const data = await res.json();
     if (data.error) {
-      const msgs = { NOT_ENOUGH_DC:'Недостаточно DC', STATE_COMPANY:'Гос. компания', YOU_ARE_LEADER:'Вы лидер' };
+      const msgs = { STATE_COMPANY:'Гос. компания', YOU_ARE_LEADER:'Вы лидер этой компании', ALREADY_WORKER:'Вы уже работник' };
       alert(msgs[data.error] || data.error);
       return;
     }
-    const exp = new Date(data.expires_at).toLocaleDateString('ru');
-    alert(`✅ Лицензия куплена до ${exp}`);
+    alert('✅ Заявка отправлена! Ждите одобрения лидера.');
+    const compId = selectedCompany.id;
     closeCompanyModal();
     await loadCraft();
+    await openCompanyModal(compId);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function approveApplication(applicationId) {
+  if (!selectedCompany || _actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/worker/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, application_id: applicationId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { APPLICANT_NO_DC:`У игрока нет DC для оплаты лицензии (${data.required} DC)`, NOT_LEADER:'Вы не лидер' };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function rejectApplication(applicationId) {
+  if (!selectedCompany || _actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/worker/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, application_id: applicationId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function kickWorker(targetUserId) {
+  if (!selectedCompany || _actionLock) return;
+  if (!confirm(`Кикнуть работника #${targetUserId}? Его активный заказ будет отменён с возвратом клиенту.`)) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/worker/kick`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, target_user_id: targetUserId, company_id: selectedCompany.id })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
   } finally {
     hideActionLoader();
   }
