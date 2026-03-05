@@ -3313,7 +3313,7 @@ async function openCompanyModal(companyId) {
   const recipesEl = document.getElementById('company-recipes-list');
   const companyRecipes = Object.entries(RECIPES_CLIENT).filter(([, r]) => r.company_type === company.type);
   recipesEl.innerHTML = companyRecipes.map(([key, r]) => {
-    const price = Math.ceil(r.basePrice * company.price_multiplier * 100) / 100;
+    const price = company.is_state ? 0 : Math.ceil(r.basePrice * company.price_multiplier * 100) / 100;
     const resStr = Object.entries(r.resources)
       .map(([res, qty]) => `${Math.ceil(qty * company.resourceMultiplier)} ${RESOURCE_LABELS[res] || res}`)
       .join(', ');
@@ -3321,7 +3321,7 @@ async function openCompanyModal(companyId) {
       <div style="padding:10px; background:var(--panel); border-radius:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <div style="font-size:13px; font-weight:600;">${r.label}</div>
-          <div style="font-size:12px; color:#f5c77a; font-weight:700;">${price} DC</div>
+          <div style="font-size:12px; color:#f5c77a; font-weight:700;">${price > 0 ? price + ' DC' : '🆓 Бесплатно'}</div>
         </div>
         <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">Нужно: ${resStr}</div>
         <button onclick="createOrder('${key}')" style="width:100%; padding:8px; font-size:12px; border-radius:10px;">📦 Заказать</button>
@@ -3480,7 +3480,7 @@ async function createOrder(recipe) {
   const resStr = Object.entries(r.resources)
     .map(([res, qty]) => `${Math.ceil(qty * selectedCompany.resourceMultiplier)} ${RESOURCE_LABELS[res]}`)
     .join(', ');
-  if (!confirm(`Разместить заказ?\n${r.label}\nРесурсы: ${resStr}\nОплата: ${price} DC`)) return;
+  if (!confirm(`Разместить заказ?\n${r.label}\nРесурсы: ${resStr}\n${price > 0 ? 'Оплата: ' + price + ' DC' : 'Оплата: Бесплатно'}`)) return;
   const companyId = selectedCompany.id;
   showActionLoader();
   try {
