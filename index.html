@@ -863,8 +863,8 @@ button:disabled {
   <div class="box" style="max-width:340px; width:90%; display:flex; flex-direction:column; gap:10px;">
     <h3 style="text-align:center; margin:0;">🏭 Создать компанию</h3>
     <div style="font-size:12px; color:var(--muted);">
-      Плавильня: 2,000 🪨 + 100 DC<br>
-      Кузница: 3,000 🪨 + 150 DC
+      Плавильня: 5,000 🪨<br>
+      Кузница: 7,500 🪨
     </div>
     <input id="create-company-name" type="text" placeholder="Название (до 30 символов)" maxlength="30"
       style="width:100%; padding:10px; border-radius:10px; border:none; font-size:13px;">
@@ -3105,9 +3105,13 @@ function renderCraftWorkerStatus() {
   let html = '';
 
   if (myCompany) {
+    const income = myCompany.fund_dc || 0;
     html += `<div style="padding:10px 12px; background:rgba(245,199,122,0.07); border:1px solid rgba(245,199,122,0.2); border-radius:12px;">
       <div style="font-size:13px; font-weight:600;">👑 Ваша компания: ${myCompany.name}</div>
-      <div style="font-size:11px; color:var(--muted); margin-top:2px;">Фонд: ${(myCompany.fund_dc||0).toFixed(2)} DC</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px;">
+        <div style="font-size:12px; color:var(--muted);">💰 Доход: <span style="color:#f5c77a; font-weight:700;">${income.toFixed(2)} DC</span></div>
+        ${income > 0 ? `<button onclick="collectCompanyIncome(${myCompany.id})" style="padding:5px 12px; font-size:11px; background:linear-gradient(180deg,#f5c77a,#d6a956); color:#000; border-radius:8px; font-weight:700;">Забрать</button>` : ''}
+      </div>
     </div>`;
   }
 
