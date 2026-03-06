@@ -849,6 +849,15 @@ button:disabled {
         <div id="company-workers-list" style="display:flex; flex-direction:column; gap:6px;"></div>
       </div>
 
+      <!-- Апгрейд уровня (только лидер) -->
+      <div id="company-upgrade-section" style="display:none; padding:10px; background:rgba(106,90,205,0.1); border:1px solid rgba(106,90,205,0.3); border-radius:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-size:12px; color:var(--muted);">⬆️ Следующий уровень: <span id="company-upgrade-cost" style="color:#a88fff; font-weight:700;"></span></div>
+          <button id="company-upgrade-btn" onclick="levelUpCompany()" style="padding:5px 12px; font-size:11px; background:linear-gradient(180deg,#6a5acd,#483d8b); color:#fff; border-radius:8px;">Улучшить</button>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px;">+5 мест для работников</div>
+      </div>
+
       <!-- Кнопка настроек лидера -->
       <button id="company-settings-btn" onclick="openCompanySettings()" style="display:none; width:100%; background:linear-gradient(180deg,#6a5acd,#483d8b); color:#fff; border-radius:10px; padding:10px; font-size:13px;">⚙️ Настройки компании</button>
 
@@ -3197,8 +3206,12 @@ async function openCompanyModal(companyId) {
   document.getElementById('company-modal-title').innerText = company.name;
 
   const qualityColor = company.quality >= 7 ? '#4cd964' : company.quality >= 4 ? '#f5c77a' : '#9aa0b4';
+  const maxWorkers = (company.level || 1) * 5;
+  const levelUpCost = [0,2000,4000,6000,8000,10000,13000,16000,20000,25000];
+  const nextCost = company.level < 10 ? levelUpCost[company.level] : null;
   document.getElementById('company-modal-quality').innerHTML =
-    `Качество: <span style="color:${qualityColor}; font-weight:700;">Q${company.quality}</span>`;
+    `Качество: <span style="color:${qualityColor}; font-weight:700;">Q${company.quality}</span>` +
+    (isState ? '' : ` &nbsp;|&nbsp; Уровень: <b>${company.level||1}</b>/10 &nbsp;|&nbsp; Работников: <b>${company.workers?.length||0}</b>/${maxWorkers}`);
 
   document.getElementById('company-modal-stats').innerHTML = `
     <div style="padding:6px 8px; background:var(--panel); border-radius:8px;">
@@ -3360,6 +3373,23 @@ async function openCompanyModal(companyId) {
   // Кнопка настроек (только лидер, не гос)
   document.getElementById('company-settings-btn').style.display =
     (isLeader && !isState) ? 'block' : 'none';
+
+  // Кнопка апгрейда уровня (только лидер, не гос, не макс уровень)
+  const upgradeEl = document.getElementById('company-upgrade-section');
+  if (isLeader && !isState) {
+    const lvl = company.level || 1;
+    const costs = [0,2000,4000,6000,8000,10000,13000,16000,20000,25000];
+    if (lvl < 10) {
+      upgradeEl.style.display = 'block';
+      document.getElementById('company-upgrade-cost').innerText = `${costs[lvl].toLocaleString()} 🪨 камня`;
+    } else {
+      upgradeEl.style.display = 'block';
+      document.getElementById('company-upgrade-cost').innerText = 'Максимальный уровень!';
+      document.getElementById('company-upgrade-btn').disabled = true;
+    }
+  } else {
+    upgradeEl.style.display = 'none';
+  }
 
   document.getElementById('company-modal').style.display = 'flex';
 }
@@ -3590,6 +3620,52 @@ async function createCompany(type) {
     }
     alert('✅ Компания создана!');
     closeCreateCompany();
+    await loadCraft();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function levelUpCompany() {
+  if (!selectedCompany || _actionLock) return;
+  const costs = [0,2000,4000,6000,8000,10000,13000,16000,20000,25000];
+  const lvl = selectedCompany.level || 1;
+  if (!confirm(`Улучшить компанию до уровня ${lvl+1}?\nСтоимость: ${costs[lvl].toLocaleString()} 🪨 камня\n+5 мест для работников`)) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/company/levelup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: selectedCompany.id })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { MAX_LEVEL:'Уже максимальный уровень', NOT_ENOUGH_STONE:`Недостаточно камня` };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert(`✅ Уровень повышен до ${data.new_level}! Теперь максимум ${data.new_max_workers} работников.`);
+    const compId = selectedCompany.id;
+    closeCompanyModal();
+    await loadCraft();
+    await openCompanyModal(compId);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function collectCompanyIncome(companyId) {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/company/income/collect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: companyId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert(`✅ Получено: ${data.collected.toFixed(2)} DC`);
     await loadCraft();
   } finally {
     hideActionLoader();
