@@ -1002,6 +1002,15 @@ button:disabled {
     <button onclick="closeCompanySettings()" style="width:100%; background:#333; color:#fff; border-radius:14px; padding:10px;">Отмена</button>
   </div>
 </div>
+  <!-- МОДАЛКА РЕЗУЛЬТАТА ЗАКАЗА -->
+<div id="order-result-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:10001;">
+  <div class="box" style="max-width:300px; width:88%; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:24px 20px;">
+    <div id="order-result-icon" style="font-size:52px; line-height:1;"></div>
+    <div id="order-result-title" style="font-size:15px; font-weight:800; color:#fff;"></div>
+    <div id="order-result-text" style="font-size:13px; line-height:1.7; white-space:pre-line; color:var(--muted);"></div>
+    <button onclick="closeOrderResultModal()" style="width:100%; padding:12px; border-radius:14px; font-size:14px;">ОК</button>
+  </div>
+</div>
   <!-- ===== NAV ===== -->
   <div class="nav-wrapper">
     <div class="nav">
@@ -3163,16 +3172,52 @@ function renderCraftPickaxe() {
 
 function renderCraftMyOrders() {
   const el = document.getElementById('craft-my-orders');
-  const orders = [...(craftPlayerData?.clientOrders || []), ...(craftPlayerData?.doneOrders || [])];
-  if (!orders.length) {
+  const activeOrders = craftPlayerData?.clientOrders || [];
+  const completedOrders = craftPlayerData?.doneOrders || [];
+
+  // Сохраняем для readOrder
+  window._craftDoneOrdersMap = {};
+  completedOrders.forEach(o => { window._craftDoneOrdersMap[o.id] = o; });
+
+  const allOrders = [...activeOrders, ...completedOrders];
+  if (!allOrders.length) {
     el.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Нет активных заказов</div>`;
     return;
   }
+
   const now = Date.now();
-  el.innerHTML = orders.map(o => {
+  const statusColor = { pending:'#f5c77a', in_progress:'#4fdcff', done:'#4cd964', expired:'#ff6b6b', abandoned:'#ff6b6b', cancelled:'#ff6b6b' };
+  const statusMap   = { pending:'⏳ Ожидает работника', in_progress:'⚙️ Выполняется', done:'✅ Готово', expired:'❌ Истёк', abandoned:'❌ Брошен', cancelled:'❌ Отменён' };
+
+  el.innerHTML = allOrders.map(o => {
     const recipe = RECIPES_CLIENT[o.recipe];
-    const statusMap = { pending:'⏳ Ожидает работника', in_progress:'⚙️ Выполняется', done:'✅ Готово', expired:'❌ Истёк (возврат)', abandoned:'❌ Брошен (возврат)', cancelled:'❌ Отменён (возврат)' };
-    const statusColor = { pending:'#f5c77a', in_progress:'#4fdcff', done:'#4cd964', expired:'#ff6b6b', abandoned:'#ff6b6b', cancelled:'#ff6b6b' };
+    const isCompleted = !['pending','in_progress'].includes(o.status);
+
+    if (isCompleted) {
+      // Определяем иконку по результату
+      let notifIcon = '📭';
+      if (o.status === 'done' && o.result) {
+        try {
+          const r = JSON.parse(o.result);
+          if (r.success) notifIcon = '✅';
+          else if (r.type === 'pickaxe') notifIcon = '⚠️';
+          else notifIcon = '💥';
+        } catch {}
+      }
+      return `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid ${statusColor[o.status] || '#555'};">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">${notifIcon}</span>
+            <div>
+              <div style="font-size:12px; font-weight:600; color:#ddd;">${recipe?.label || o.recipe}</div>
+              <div style="font-size:11px; color:${statusColor[o.status]};">${statusMap[o.status]}</div>
+            </div>
+          </div>
+          <button onclick="readOrder(${o.id})" style="padding:5px 11px; font-size:11px; background:rgba(245,199,122,0.12); border:1px solid rgba(245,199,122,0.3); color:var(--accent); border-radius:8px; font-weight:700; flex-shrink:0;">📬 Открыть</button>
+        </div>`;
+    }
+
+    // Активный заказ — как раньше
     let extra = '';
     if (o.status === 'in_progress' && o.ends_at) {
       const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
@@ -3839,6 +3884,70 @@ async function saveCompanySettings() {
   } finally {
     hideActionLoader();
   }
+}
+
+async function readOrder(orderId) {
+  const order = window._craftDoneOrdersMap?.[orderId];
+  if (!order) return;
+
+  const recipeName = RECIPES_CLIENT[order.recipe]?.label || order.recipe;
+  let icon, title, text;
+
+  if (order.status === 'expired') {
+    icon = '⏰'; title = 'Заказ истёк';
+    text = `«${recipeName}»\n\nВремя ожидания вышло.\nDC и ресурсы возвращены на ваш счёт.`;
+  } else if (order.status === 'abandoned') {
+    icon = '🚶'; title = 'Работник бросил заказ';
+    text = `«${recipeName}»\n\nРаботник не завершил заказ вовремя.\nDC и ресурсы возвращены на ваш счёт.`;
+  } else if (order.status === 'cancelled') {
+    icon = '❌'; title = 'Заказ отменён';
+    text = `«${recipeName}»\n\nDC и ресурсы возвращены на ваш счёт.`;
+  } else {
+    // done
+    let result = null;
+    try { result = JSON.parse(order.result); } catch {}
+
+    if (!result) {
+      icon = '✅'; title = 'Заказ завершён'; text = recipeName;
+    } else if (result.type === 'ingot') {
+      if (result.success) {
+        icon = '✅'; title = 'Успешно!';
+        text = `Получен:\n${recipeName}\n\nДобавлен в ваш инвентарь.`;
+      } else {
+        icon = '💥'; title = 'Крафт не удался';
+        text = `«${recipeName}»\n\nНизкое качество компании — слиток не получился.\nМатериалы израсходованы.\n\n(Шанс успеха гос. предприятия: 25%)`;
+      }
+    } else if (result.type === 'pickaxe') {
+      if (result.success) {
+        icon = '✅'; title = 'Кирка готова!';
+        text = `${recipeName}\n\n⚡ +${result.bonus_mining}% к добыче\n🛡 Прочность: ${result.durability}\n\nДобавлена в инвентарь.`;
+      } else {
+        icon = '⚠️'; title = 'Бракованная кирка';
+        text = `${recipeName} [Брак]\n\n⚡ +${result.bonus_mining}% к добыче (снижено)\n🛡 Прочность: ${result.durability} (снижена)\n\nДобавлена в инвентарь с пометкой [Брак].`;
+      }
+    } else {
+      icon = '✅'; title = 'Готово'; text = recipeName;
+    }
+  }
+
+  document.getElementById('order-result-icon').innerText = icon;
+  document.getElementById('order-result-title').innerText = title;
+  document.getElementById('order-result-text').innerText = text;
+  document.getElementById('order-result-modal').style.display = 'flex';
+
+  // Помечаем как прочитанное
+  try {
+    await fetch(`${API_URL}/craft/order/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, order_id: orderId })
+    });
+  } catch {}
+}
+
+function closeOrderResultModal() {
+  document.getElementById('order-result-modal').style.display = 'none';
+  loadCraft();
 }
 
 // ===== INVENTORY =====
