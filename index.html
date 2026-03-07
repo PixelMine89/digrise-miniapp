@@ -3224,8 +3224,8 @@ function renderCraftWorkerStatus() {
   workerIn.forEach(w => {
     const expDate = new Date(w.license_expires_at).toLocaleDateString('ru');
     const isExpired = w.license_expires_at < Date.now();
-    html += `<div style="padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid #4fdcff;">
-      <div style="font-size:13px; font-weight:600;">${w.company_name}</div>
+    html += `<div onclick="openCompanyModal(${w.company_id})" style="padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid #4fdcff; cursor:pointer;">
+      <div style="font-size:13px; font-weight:600;">${w.company_name} <span style="font-size:10px; color:var(--muted);">→</span></div>
       <div style="font-size:11px; color:var(--muted);">
         XP: ${w.xp} &nbsp;|&nbsp;
         Лицензия: <span style="color:${isExpired ? '#ff6b6b' : '#4cd964'}">${isExpired ? 'Истекла!' : `до ${expDate}`}</span>
@@ -3513,7 +3513,7 @@ async function buyWorkerLicense() {
     });
     const data = await res.json();
     if (data.error) {
-      const msgs = { STATE_COMPANY:'Гос. компания', YOU_ARE_LEADER:'Вы лидер этой компании', ALREADY_WORKER:'Вы уже работник' };
+      const msgs = { STATE_COMPANY:'Гос. компания', YOU_ARE_LEADER:'Вы лидер этой компании', ALREADY_WORKER:'Вы уже работник', ALREADY_IN_COMPANY:'Вы уже состоите в другой компании — сначала выйдите из неё' };
       alert(msgs[data.error] || data.error);
       return;
     }
@@ -3538,7 +3538,12 @@ async function approveApplication(applicationId) {
     });
     const data = await res.json();
     if (data.error) {
-      const msgs = { APPLICANT_NO_DC:`У игрока нет DC для оплаты лицензии (${data.required} DC)`, NOT_LEADER:'Вы не лидер' };
+      const msgs = {
+        APPLICANT_NO_DC: `У игрока нет DC для оплаты лицензии (${data.required} DC)`,
+        APPLICANT_IN_ANOTHER_COMPANY: 'Игрок уже состоит в другой компании',
+        WORKERS_LIMIT: `Достигнут лимит работников (${data.current}/${data.max}). Повысьте уровень компании.`,
+        NOT_LEADER: 'Вы не лидер'
+      };
       alert(msgs[data.error] || data.error);
       return;
     }
@@ -3573,7 +3578,19 @@ async function rejectApplication(applicationId) {
 
 async function kickWorker(targetUserId) {
   if (!selectedCompany || _actionLock) return;
-  if (!confirm(`Кикнуть работника #${targetUserId}? Его активный заказ будет отменён с возвратом клиенту.`)) return;
+
+  const isSelf = String(targetUserId) === String(currentUserId);
+
+  if (isSelf) {
+    if (!confirm(
+      `Покинуть компанию "${selectedCompany.name}"?\n\n` +
+      `Владельцем станет работник с наибольшим опытом.\n` +
+      `Если работников нет — компания будет удалена, а все заказы возвращены клиентам.`
+    )) return;
+  } else {
+    if (!confirm(`Кикнуть работника #${targetUserId}? Его активный заказ будет отменён с возвратом клиенту.`)) return;
+  }
+
   showActionLoader();
   try {
     const res = await fetch(`${API_URL}/craft/worker/kick`, {
@@ -3583,10 +3600,21 @@ async function kickWorker(targetUserId) {
     });
     const data = await res.json();
     if (data.error) { alert(data.error); return; }
-    const compId = selectedCompany.id;
-    closeCompanyModal();
-    await loadCraft();
-    await openCompanyModal(compId);
+
+    if (data.deleted) {
+      alert('✅ Компания удалена. Все заказы возвращены клиентам.');
+      closeCompanyModal();
+      await loadCraft();
+    } else if (data.transferred) {
+      alert(`✅ Компания передана игроку #${data.new_leader}`);
+      closeCompanyModal();
+      await loadCraft();
+    } else {
+      const compId = selectedCompany.id;
+      closeCompanyModal();
+      await loadCraft();
+      await openCompanyModal(compId);
+    }
   } finally {
     hideActionLoader();
   }
@@ -3711,7 +3739,7 @@ async function createCompany(type) {
     });
     const data = await res.json();
     if (data.error) {
-      const msgs = { NOT_ENOUGH_STONE:'Недостаточно камня', NOT_ENOUGH_DC:'Недостаточно DC', ALREADY_LEADER:'Вы уже являетесь лидером другой компании' };
+      const msgs = { NOT_ENOUGH_STONE:'Недостаточно камня', ALREADY_LEADER:'Вы уже лидер другой компании', ALREADY_IN_COMPANY:'Вы уже состоите в компании — выйдите из неё прежде' };
       alert(msgs[data.error] || data.error);
       return;
     }
