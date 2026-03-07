@@ -349,6 +349,28 @@ button:disabled {
   border-radius: 4px;
   transition: width 1s linear;
 }
+    /* shimmer для редких ресурсов */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.inv-rare {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+.inv-card {
+  padding: 8px 6px;
+  border-radius: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.inv-card:active { transform: scale(0.93); }
   </style>
 </head>
 <body>
@@ -403,6 +425,77 @@ button:disabled {
   
   <!-- ===== CRAFT ===== -->
   <div id="tab-craft" class="tab">
+
+    <!-- ===== СЕЙФ ГОРНЯКА ===== -->
+<div id="inventory-panel" style="margin-bottom:16px;">
+
+  <!-- Закрытая полоска -->
+  <div id="inv-header" onclick="toggleInventory()" style="
+    position:relative; overflow:hidden;
+    background:linear-gradient(135deg, #181f30 0%, #0f1420 60%, #1a1428 100%);
+    border-radius:16px; padding:12px 16px;
+    border:1px solid rgba(245,199,122,0.25);
+    box-shadow:0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+    transition: border-color 0.3s;">
+    
+    <!-- блик-полоска сверху -->
+    <div style="position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg,transparent,rgba(245,199,122,0.6),transparent);"></div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <!-- иконка сейфа -->
+      <div style="
+        width:36px; height:36px; border-radius:10px; flex-shrink:0;
+        background:linear-gradient(145deg,#2a2040,#1a1428);
+        border:1px solid rgba(245,199,122,0.3);
+        display:flex; align-items:center; justify-content:center;
+        font-size:18px; box-shadow:0 0 10px rgba(245,199,122,0.15);">
+        🎒
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:700; color:#fff; letter-spacing:0.3px;">Инвентарь</div>
+        <div id="inv-preview" style="font-size:11px; color:var(--muted); margin-top:1px;">Загрузка...</div>
+      </div>
+    </div>
+
+    <!-- Правый блок: DC + стрелка -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="text-align:right;">
+        <div style="font-size:10px; color:var(--muted);">DigCoin</div>
+        <div id="inv-dc" style="font-size:14px; font-weight:800; color:#f5c77a; text-shadow:0 0 8px rgba(245,199,122,0.4);">—</div>
+      </div>
+      <div id="inv-arrow" style="
+        width:28px; height:28px; border-radius:8px;
+        background:rgba(245,199,122,0.1); border:1px solid rgba(245,199,122,0.2);
+        display:flex; align-items:center; justify-content:center;
+        font-size:12px; color:var(--accent);
+        transition:transform 0.3s ease;">▼</div>
+    </div>
+  </div>
+
+  <!-- Раскрываемая часть -->
+  <div id="inv-body" style="
+    max-height:0; overflow:hidden;
+    transition:max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+    opacity:0;">
+    
+    <div style="
+      background:linear-gradient(180deg,#0f1420,#0b0e13);
+      border:1px solid rgba(245,199,122,0.15); border-top:none;
+      border-radius:0 0 16px 16px; padding:14px 12px 12px;">
+      
+      <!-- Сетка ресурсов -->
+      <div id="inv-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:10px;"></div>
+
+      <!-- Слитки -->
+      <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; padding-left:2px;">
+        ⚗️ Слитки
+      </div>
+      <div id="inv-ingots" style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;"></div>
+    </div>
+  </div>
+</div>
 
     <!-- МОЯ КИРКА -->
     <div style="margin-bottom:12px;">
@@ -3030,6 +3123,10 @@ async function loadCraft() {
     craftCompaniesCache = await companiesRes.json();
     craftPlayerData = await playerRes.json();
 
+    // Рендерим инвентарь из свежих данных игрока
+    const playerFull = await fetch(`${API_URL}/getUser?user_id=${currentUserId}`).then(r=>r.json());
+    renderInventory(playerFull);
+
     renderCraftPickaxe();
     renderCraftMyOrders();
     renderCraftWorkerStatus();
@@ -3714,6 +3811,103 @@ async function saveCompanySettings() {
   } finally {
     hideActionLoader();
   }
+}
+
+// ===== INVENTORY =====
+let _invOpen = false;
+
+function toggleInventory() {
+  _invOpen = !_invOpen;
+  const body = document.getElementById('inv-body');
+  const arrow = document.getElementById('inv-arrow');
+  const header = document.getElementById('inv-header');
+  if (_invOpen) {
+    body.style.maxHeight = '600px';
+    body.style.opacity = '1';
+    arrow.style.transform = 'rotate(180deg)';
+    header.style.borderRadius = '16px 16px 0 0';
+    header.style.borderBottomColor = 'transparent';
+  } else {
+    body.style.maxHeight = '0';
+    body.style.opacity = '0';
+    arrow.style.transform = 'rotate(0deg)';
+    header.style.borderRadius = '16px';
+    header.style.borderBottomColor = 'rgba(245,199,122,0.25)';
+  }
+}
+
+function renderInventory(player) {
+  if (!player) return;
+
+  const res = player.resources || {};
+
+  // DC
+  document.getElementById('inv-dc').innerText =
+    (player.digCoin || 0).toLocaleString('ru', {maximumFractionDigits:2});
+
+  // Preview строка (топ ресурсы)
+  const previewItems = [
+    { k:'stone',   icon:'🪨', v: res.stone   || 0 },
+    { k:'coal',    icon:'⚫', v: res.coal    || 0 },
+    { k:'copper',  icon:'🟠', v: res.copper  || 0 },
+    { k:'iron',    icon:'⚙️', v: res.iron    || 0 },
+    { k:'gold',    icon:'🌕', v: res.gold    || 0 },
+    { k:'diamond', icon:'💎', v: res.diamond || 0 },
+  ].filter(x => x.v > 0).slice(0,4);
+
+  document.getElementById('inv-preview').innerText = previewItems.length
+    ? previewItems.map(x => `${x.icon}${x.v.toLocaleString('ru')}`).join('  ')
+    : 'Ресурсов нет — иди копать!';
+
+  // Конфиги карточек
+  const rawResources = [
+    { k:'stone',   icon:'🪨', label:'Камень',  color:'#6e7a8a', glow:'rgba(110,122,138,0.3)', rare:false },
+    { k:'coal',    icon:'⚫', label:'Уголь',   color:'#4a4a5a', glow:'rgba(74,74,90,0.3)',   rare:false },
+    { k:'copper',  icon:'🟠', label:'Медь',    color:'#c87533', glow:'rgba(200,117,51,0.35)', rare:false },
+    { k:'iron',    icon:'⚙️', label:'Железо',  color:'#8a8a9a', glow:'rgba(138,138,154,0.3)', rare:false },
+    { k:'gold',    icon:'🌕', label:'Золото',  color:'#f5c77a',
+      glow:'rgba(245,199,122,0.4)',
+      gradient:'linear-gradient(120deg, rgba(245,199,122,0.15) 0%, rgba(255,230,100,0.25) 50%, rgba(245,199,122,0.15) 100%)',
+      rare:true },
+    { k:'diamond', icon:'💎', label:'Алмаз',  color:'#7fffd4',
+      glow:'rgba(127,255,212,0.4)',
+      gradient:'linear-gradient(120deg, rgba(127,255,212,0.1) 0%, rgba(100,220,200,0.25) 50%, rgba(127,255,212,0.1) 100%)',
+      rare:true },
+  ];
+
+  const ingots = [
+    { k:'copper_ingot',  icon:'🟠', label:'Мед.',  color:'#c87533', glow:'rgba(200,117,51,0.4)' },
+    { k:'iron_ingot',    icon:'⚙️', label:'Жел.',  color:'#8a8a9a', glow:'rgba(138,138,154,0.4)' },
+    { k:'gold_ingot',    icon:'🌕', label:'Зол.',  color:'#f5c77a', glow:'rgba(245,199,122,0.5)', rare:true,
+      gradient:'linear-gradient(120deg, rgba(245,199,122,0.15) 0%, rgba(255,230,100,0.3) 50%, rgba(245,199,122,0.15) 100%)' },
+    { k:'diamond_ingot', icon:'💎', label:'Алм.',  color:'#7fffd4', glow:'rgba(127,255,212,0.5)', rare:true,
+      gradient:'linear-gradient(120deg, rgba(127,255,212,0.12) 0%, rgba(100,220,200,0.3) 50%, rgba(127,255,212,0.12) 100%)' },
+  ];
+
+  function makeCard(item) {
+    const amount = res[item.k] || 0;
+    const dim = amount === 0 ? 'opacity:0.38;' : '';
+    const bg = item.rare && amount > 0
+      ? item.gradient
+      : `rgba(255,255,255,0.03)`;
+    const border = amount > 0
+      ? `1px solid ${item.glow.replace('0.4','0.35').replace('0.5','0.35').replace('0.3','0.2')}`
+      : '1px solid rgba(255,255,255,0.05)';
+    const shadow = amount > 0 ? `box-shadow:0 2px 10px ${item.glow};` : '';
+    const rareClass = item.rare && amount > 0 ? 'inv-rare' : '';
+
+    return `<div class="inv-card ${rareClass}" style="background:${bg}; border:${border}; ${shadow} ${dim}">
+      <div style="font-size:20px; line-height:1;">${item.icon}</div>
+      <div style="font-size:13px; font-weight:800; color:${amount > 0 ? item.color : 'var(--muted)'};
+        text-shadow:${amount > 0 ? '0 0 8px ' + item.glow : 'none'};">
+        ${amount > 999 ? (amount/1000).toFixed(1)+'k' : amount}
+      </div>
+      <div style="font-size:9px; color:var(--muted); letter-spacing:0.3px;">${item.label}</div>
+    </div>`;
+  }
+
+  document.getElementById('inv-grid').innerHTML = rawResources.map(makeCard).join('');
+  document.getElementById('inv-ingots').innerHTML = ingots.map(makeCard).join('');
 }
 
 loadPlayer();
