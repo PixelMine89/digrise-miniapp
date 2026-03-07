@@ -3205,6 +3205,10 @@ async function openCompanyModal(companyId) {
 
   document.getElementById('company-modal-title').innerText = company.name;
 
+  const isLeader = String(company.leader_id) === String(currentUserId);
+  const isWorker = !!company.workerStatus && company.workerStatus.license_expires_at > Date.now();
+  const isState  = !!company.is_state;
+
   const qualityColor = company.quality >= 7 ? '#4cd964' : company.quality >= 4 ? '#f5c77a' : '#9aa0b4';
   const maxWorkers = (company.level || 1) * 5;
   const levelUpCost = [0,2000,4000,6000,8000,10000,13000,16000,20000,25000];
@@ -3226,10 +3230,6 @@ async function openCompanyModal(companyId) {
     <div style="padding:6px 8px; background:var(--panel); border-radius:8px;">
       💰 Ставка раб.: <b>${Math.round(company.worker_rate*100)}%</b>
     </div>`;
-
-  const isLeader = String(company.leader_id) === String(currentUserId);
-  const isWorker = !!company.workerStatus && company.workerStatus.license_expires_at > Date.now();
-  const isState = !!company.is_state;
 
   // Кнопка подачи заявки / статус заявки
   const licenseSection = document.getElementById('company-worker-license-section');
@@ -3603,7 +3603,7 @@ function closeCreateCompany() {
 async function createCompany(type) {
   const name = document.getElementById('create-company-name').value.trim();
   if (!name) { alert('Введите название'); return; }
-  const costMap = { smelter:'2,000 🪨 + 100 DC', forge:'3,000 🪨 + 150 DC' };
+  const costMap = { smelter:'5,000 🪨', forge:'7,500 🪨' };
   if (!confirm(`Создать ${type === 'smelter' ? 'Плавильню' : 'Кузницу'} "${name}"?\nСтоимость: ${costMap[type]}`)) return;
   showActionLoader();
   try {
