@@ -2921,6 +2921,20 @@ async function startMining() {
       alert(msgs[data.error] || data.error);
       return;
     }
+    if (data.pickaxe_broke) {
+      // Показываем уведомление о поломке, не блокируем UI
+      const brokenNote = document.createElement('div');
+      brokenNote.style.cssText = `
+        position:fixed; bottom:140px; left:50%; transform:translateX(-50%);
+        background:linear-gradient(180deg,#ff6b6b,#cc3333); color:#fff;
+        padding:10px 18px; border-radius:12px; font-size:13px; font-weight:700;
+        z-index:99999; box-shadow:0 4px 20px rgba(255,0,0,0.4);
+        animation: fadeInUp 0.3s ease;
+      `;
+      brokenNote.innerText = '⛏️ Кирка сломалась!';
+      document.body.appendChild(brokenNote);
+      setTimeout(() => brokenNote.remove(), 3000);
+    }
     document.getElementById('mining-start-btn').style.display = 'none';
     document.getElementById('mining-session-block').style.display = 'block';
     window._activeSession = data.session;
@@ -3293,23 +3307,48 @@ async function loadCraft() {
 function renderCraftPickaxe() {
   const el = document.getElementById('craft-pickaxe-info');
   const items = craftPlayerData?.items || [];
+  const equippedId = craftPlayerData?.equippedPickaxeId || null;
+
   if (!items.length) {
     el.innerHTML = `<div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Нет кирок. Закажи в Кузнице!</div>`;
     return;
   }
+
   el.innerHTML = items.map(it => {
+    const isEquipped = it.id === equippedId;
     const defLabel = it.is_defective ? ' <span style="color:#ff6b6b;">[Брак]</span>' : '';
     const durPct = Math.round((it.durability / it.max_durability) * 100);
     const durColor = durPct > 60 ? '#4cd964' : durPct > 30 ? '#f5c77a' : '#ff6b6b';
+
+    const equippedBadge = isEquipped
+      ? `<span style="font-size:10px; color:#4cd964; background:rgba(76,217,100,0.12); border:1px solid rgba(76,217,100,0.3); border-radius:5px; padding:2px 6px;">✅ Экипирована</span>`
+      : '';
+
+    const equipBtn = isEquipped
+      ? `<button onclick="equipPickaxe(null)" style="padding:5px 11px; font-size:11px; background:#333; color:#ff6b6b; border-radius:8px; flex-shrink:0;">Снять</button>`
+      : `<button onclick="equipPickaxe(${it.id})" style="padding:5px 11px; font-size:11px; background:rgba(79,220,255,0.12); border:1px solid rgba(79,220,255,0.3); color:#4fdcff; border-radius:8px; flex-shrink:0;">Экипировать</button>`;
+
     return `
-      <div style="padding:10px 12px; background:var(--panel); border-radius:12px; border-left:3px solid #4fdcff;">
-        <div style="font-size:13px; font-weight:600;">${RECIPES_CLIENT[it.item_type]?.label || it.item_type}${defLabel}</div>
-        <div style="font-size:11px; color:var(--muted); margin-top:3px;">
-          +${it.bonus_mining}% добычи &nbsp;|&nbsp;
-          Прочность: <span style="color:${durColor}">${it.durability}/${it.max_durability}</span>
-        </div>
-        <div style="background:#1b2032; border-radius:4px; height:4px; margin-top:5px; overflow:hidden;">
-          <div style="height:100%; width:${durPct}%; background:${durColor}; border-radius:4px;"></div>
+      <div style="padding:10px 12px; background:var(--panel); border-radius:12px;
+        border-left:3px solid ${isEquipped ? '#4cd964' : '#4fdcff'};
+        ${isEquipped ? 'box-shadow:0 0 0 1px rgba(76,217,100,0.2);' : ''}">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600;">
+              ${RECIPES_CLIENT[it.item_type]?.label || it.item_type}${defLabel}
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">
+              +${it.bonus_mining}% добычи &nbsp;|&nbsp;
+              Прочность: <span style="color:${durColor}">${it.durability}/${it.max_durability}</span>
+            </div>
+            <div style="margin-top:5px;">
+              <div style="background:#1b2032; border-radius:4px; height:4px; overflow:hidden;">
+                <div style="height:100%; width:${durPct}%; background:${durColor}; border-radius:4px;"></div>
+              </div>
+            </div>
+            ${equippedBadge ? `<div style="margin-top:5px;">${equippedBadge}</div>` : ''}
+          </div>
+          ${equipBtn}
         </div>
       </div>`;
   }).join('');
@@ -4190,6 +4229,23 @@ function renderInventory(player) {
 
   document.getElementById('inv-grid').innerHTML = rawResources.map(makeCard).join('');
   document.getElementById('inv-ingots').innerHTML = ingots.map(makeCard).join('');
+}
+
+async function equipPickaxe(itemId) {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/player/equip-pickaxe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, item_id: itemId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    await loadCraft();
+  } finally {
+    hideActionLoader();
+  }
 }
 
 // =======================
