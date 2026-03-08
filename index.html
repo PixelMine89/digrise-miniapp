@@ -534,7 +534,6 @@ button:disabled {
   <!-- ===== MARKET ===== -->
 <div id="tab-market" class="tab">
 
-  <!-- Шапка -->
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
     <div>
       <div style="font-weight:700; font-size:15px;">🏪 Рынок</div>
@@ -546,22 +545,24 @@ button:disabled {
     </div>
   </div>
 
-  <!-- Фильтр категорий -->
+  <!-- Фильтр: категория -->
   <div style="display:flex; gap:6px; margin-bottom:8px;">
-    <div class="craft-filter-btn active" onclick="setMarketFilter('all')"      data-mfilter="all">Все</div>
-    <div class="craft-filter-btn"        onclick="setMarketFilter('resource')"  data-mfilter="resource">🪨 Рес.</div>
-    <div class="craft-filter-btn"        onclick="setMarketFilter('ingot')"     data-mfilter="ingot">⚗️ Слитки</div>
-    <div class="craft-filter-btn"        onclick="setMarketFilter('pickaxe')"   data-mfilter="pickaxe">⛏️ Кирки</div>
+    <div class="craft-filter-btn active" onclick="setMarketFilter('all')"     data-mfilter="all">Все</div>
+    <div class="craft-filter-btn"        onclick="setMarketFilter('resource')" data-mfilter="resource">🪨 Рес.</div>
+    <div class="craft-filter-btn"        onclick="setMarketFilter('ingot')"    data-mfilter="ingot">⚗️ Слитки</div>
+    <div class="craft-filter-btn"        onclick="setMarketFilter('pickaxe')"  data-mfilter="pickaxe">⛏️ Кирки</div>
   </div>
+
+  <!-- Подфильтр: конкретный тип (появляется при выборе категории) -->
+  <div id="market-type-filter" style="display:none; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
 
   <!-- Сортировка -->
   <div style="display:flex; gap:6px; margin-bottom:14px;">
-    <div class="craft-filter-btn active" onclick="setMarketSort('newest')"     data-msort="newest">🕐 Новые</div>
-    <div class="craft-filter-btn"        onclick="setMarketSort('price_asc')"  data-msort="price_asc">💰 Дешевле</div>
-    <div class="craft-filter-btn"        onclick="setMarketSort('price_desc')" data-msort="price_desc">💎 Дороже</div>
+    <div class="craft-filter-btn active" onclick="setMarketSort('newest')"    data-msort="newest">🕐 Новые</div>
+    <div class="craft-filter-btn"        onclick="setMarketSort('price_asc')" data-msort="price_asc">💰 Дешевле</div>
+    <div class="craft-filter-btn"        onclick="setMarketSort('price_desc')"data-msort="price_desc">💎 Дороже</div>
   </div>
 
-  <!-- Лоты -->
   <div id="market-listings-list" style="display:flex; flex-direction:column; gap:8px;">
     <div style="color:var(--muted); font-size:13px; padding:20px; text-align:center; background:var(--panel); border-radius:12px;">Загрузка...</div>
   </div>
@@ -630,6 +631,12 @@ button:disabled {
         </div>
       </div>
     </div>
+    <!-- ПАРТНЁРСКИЕ ЗАДАНИЯ -->
+<div class="box" id="partner-tasks-box">
+  <b>🤝 Партнёрские задания</b>
+  <p class="label">Подпишитесь и получите 🪨 камень</p>
+  <div id="partner-tasks-list" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;"></div>
+</div>
   </div>
 
 <!-- ===== EXCHANGE (СВАП) ===== -->
@@ -1217,6 +1224,9 @@ async function loadTasks() {
   const res = await fetch(`${API_URL}/tasks?user_id=${currentUserId}`);
   const data = await res.json();
 
+  // Партнёрские задания
+  loadPartnerTasks();
+
   document.getElementById("refLink").innerText = data.refLink;
 
   // 👉 ВАЖНО: обновляем состояние задания
@@ -1262,6 +1272,70 @@ function copyRef() {
   const text = document.getElementById("refLink").innerText;
   navigator.clipboard.writeText(text);
   alert("Ссылка скопирована!");
+}
+
+async function loadPartnerTasks() {
+  try {
+    const res = await fetch(`${API_URL}/tasks/partner?user_id=${currentUserId}`);
+    const tasks = await res.json();
+    const el = document.getElementById('partner-tasks-list');
+    if (!tasks.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Заданий пока нет</div>'; return; }
+    el.innerHTML = tasks.map(t => `
+      <div style="padding:10px 12px; background:var(--panel); border-radius:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-size:13px; font-weight:600;">${t.title}</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">${t.description}</div>
+            <div style="font-size:11px; color:#f5c77a; margin-top:3px;">+${t.reward} 🪨 камня</div>
+          </div>
+          ${t.claimed
+            ? `<div style="padding:6px 12px; font-size:11px; color:#4cd964; border:1px solid rgba(76,217,100,0.3); border-radius:8px; white-space:nowrap;">✅ Выполнено</div>`
+            : `<button id="ptask-btn-${t.id}" onclick="claimPartnerTask('${t.id}','${t.url}')" style="padding:6px 12px; font-size:11px; border-radius:8px; white-space:nowrap; flex-shrink:0;">Перейти</button>`
+          }
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error('loadPartnerTasks:', e); }
+}
+
+function claimPartnerTask(taskId, url) {
+  window.open(url, '_blank');
+  const btn = document.getElementById(`ptask-btn-${taskId}`);
+  if (!btn) return;
+  btn.disabled = true;
+  let count = 5;
+  btn.innerText = `${count}с...`;
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) { btn.innerText = `${count}с...`; }
+    else {
+      clearInterval(interval);
+      _doClaimPartnerTask(taskId, btn);
+    }
+  }, 1000);
+}
+
+async function _doClaimPartnerTask(taskId, btn) {
+  try {
+    const res = await fetch(`${API_URL}/tasks/partner/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, task_id: taskId })
+    });
+    const data = await res.json();
+    if (data.error === 'ALREADY_CLAIMED') {
+      btn.innerText = '✅ Уже выполнено';
+      btn.style.opacity = '0.5';
+      return;
+    }
+    btn.innerText = '✅ Получено!';
+    btn.style.background = 'linear-gradient(180deg,#4cd964,#2ea84e)';
+    btn.style.color = '#fff';
+    await loadPartnerTasks();
+    await loadPlayerDataOnly();
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerText = 'Перейти';
+  }
 }
 
 async function loadPool() {
@@ -4140,12 +4214,13 @@ const MARKET_ITEM_LABELS = {
 };
 
 let _marketFilter = 'all';
+let _marketItemType = 'all';
 let _marketSort   = 'newest';
 let _marketCache  = [];
 
 async function loadMarket() {
   try {
-    const res = await fetch(`${API_URL}/market/listings?category=${_marketFilter}&sort=${_marketSort}`);
+    const res = await fetch(`${API_URL}/market/listings?category=${_marketFilter}&sort=${_marketSort}&item_type=${_marketItemType}`);
     _marketCache = await res.json();
     document.getElementById('market-stats').innerText =
       `${_marketCache.length} активных лотов  ·  комиссия 5%`;
@@ -4155,8 +4230,53 @@ async function loadMarket() {
 
 function setMarketFilter(f) {
   _marketFilter = f;
+  _marketItemType = 'all';
   document.querySelectorAll('[data-mfilter]').forEach(b => b.classList.toggle('active', b.dataset.mfilter === f));
+  renderMarketTypeFilter();
   loadMarket();
+}
+
+function setMarketItemType(t) {
+  _marketItemType = t;
+  renderMarketTypeFilter();
+  loadMarket();
+}
+
+function renderMarketTypeFilter() {
+  const el = document.getElementById('market-type-filter');
+  const typeMap = {
+    resource: [
+      { k:'all',     label:'Все' },
+      { k:'stone',   label:'🪨 Камень' },
+      { k:'coal',    label:'⚫ Уголь' },
+      { k:'copper',  label:'🟠 Медь' },
+      { k:'iron',    label:'⚙️ Железо' },
+      { k:'gold',    label:'🌕 Золото' },
+      { k:'diamond', label:'💎 Алмаз' },
+    ],
+    ingot: [
+      { k:'all',          label:'Все' },
+      { k:'copper_ingot',  label:'🟠 Мед.' },
+      { k:'iron_ingot',    label:'⚙️ Жел.' },
+      { k:'gold_ingot',    label:'🌕 Зол.' },
+      { k:'diamond_ingot', label:'💎 Алм.' },
+    ],
+    pickaxe: [
+      { k:'all',         label:'Все' },
+      { k:'copper_pick',  label:'🟠 Мед.' },
+      { k:'iron_pick',    label:'⚙️ Жел.' },
+      { k:'gold_pick',    label:'🌕 Зол.' },
+      { k:'diamond_pick', label:'💎 Алм.' },
+    ],
+  };
+  if (_marketFilter === 'all') { el.style.display = 'none'; return; }
+  const types = typeMap[_marketFilter] || [];
+  el.style.display = 'flex';
+  el.innerHTML = types.map(t =>
+    `<div class="craft-filter-btn ${_marketItemType === t.k ? 'active' : ''}"
+          onclick="setMarketItemType('${t.k}')"
+          style="flex:none; font-size:11px; padding:5px 9px;">${t.label}</div>`
+  ).join('');
 }
 
 function setMarketSort(s) {
@@ -4203,7 +4323,7 @@ function renderMarketListings() {
             <div style="font-size:13px; font-weight:700;">${info.label}</div>
             ${detail}
             <div style="font-size:10px; color:var(--muted); margin-top:3px;">
-              Продавец #${String(l.seller_id).slice(-6)}
+              Продавец #${l.seller_id}
               &nbsp;|&nbsp; <span style="color:${timeColor};">⏱ ${hoursLeft}ч</span>
             </div>
           </div>
