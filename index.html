@@ -531,27 +531,41 @@ button:disabled {
     </div>
   </div>
 
-<!-- ===== MARKET ===== -->
+  <!-- ===== MARKET ===== -->
 <div id="tab-market" class="tab">
-  <div class="box">
-    <h3>🏪 Рынок</h3>
-    <p class="label">
-      Здесь игроки смогут покупать и продавать:
-      ресурсы, слитки, кирки и другие предметы.
-    </p>
-  </div>
 
-  <div class="box">
-    <h4>📦 Создать объявление</h4>
-    <button>Создать лот</button>
-  </div>
-
-  <div class="box">
-    <h4>🛒 Активные предложения</h4>
-    <div id="market-list">
-      Скоро появится рынок...
+  <!-- Шапка -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div>
+      <div style="font-weight:700; font-size:15px;">🏪 Рынок</div>
+      <div id="market-stats" style="font-size:11px; color:var(--muted);">Загрузка...</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button onclick="openMyListings()" style="padding:7px 12px; font-size:12px; border-radius:10px; background:rgba(255,255,255,0.07); color:#fff; border:1px solid rgba(255,255,255,0.12);">📋 Мои лоты</button>
+      <button onclick="openCreateListing()" style="padding:7px 12px; font-size:12px; border-radius:10px;">+ Продать</button>
     </div>
   </div>
+
+  <!-- Фильтр категорий -->
+  <div style="display:flex; gap:6px; margin-bottom:8px;">
+    <div class="craft-filter-btn active" onclick="setMarketFilter('all')"      data-mfilter="all">Все</div>
+    <div class="craft-filter-btn"        onclick="setMarketFilter('resource')"  data-mfilter="resource">🪨 Рес.</div>
+    <div class="craft-filter-btn"        onclick="setMarketFilter('ingot')"     data-mfilter="ingot">⚗️ Слитки</div>
+    <div class="craft-filter-btn"        onclick="setMarketFilter('pickaxe')"   data-mfilter="pickaxe">⛏️ Кирки</div>
+  </div>
+
+  <!-- Сортировка -->
+  <div style="display:flex; gap:6px; margin-bottom:14px;">
+    <div class="craft-filter-btn active" onclick="setMarketSort('newest')"     data-msort="newest">🕐 Новые</div>
+    <div class="craft-filter-btn"        onclick="setMarketSort('price_asc')"  data-msort="price_asc">💰 Дешевле</div>
+    <div class="craft-filter-btn"        onclick="setMarketSort('price_desc')" data-msort="price_desc">💎 Дороже</div>
+  </div>
+
+  <!-- Лоты -->
+  <div id="market-listings-list" style="display:flex; flex-direction:column; gap:8px;">
+    <div style="color:var(--muted); font-size:13px; padding:20px; text-align:center; background:var(--panel); border-radius:12px;">Загрузка...</div>
+  </div>
+
 </div>
 
   <!-- ===== TASKS ===== -->
@@ -1011,6 +1025,60 @@ button:disabled {
     <button onclick="closeOrderResultModal()" style="width:100%; padding:12px; border-radius:14px; font-size:14px;">ОК</button>
   </div>
 </div>
+  <!-- МОДАЛ: МОИ ЛОТЫ -->
+<div id="my-listings-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:9999;">
+  <div class="box" style="max-width:340px; width:90%; max-height:80vh; display:flex; flex-direction:column; gap:10px;">
+    <h3 style="margin:0; text-align:center;">📋 Мои лоты</h3>
+    <div id="my-listings-list" style="overflow-y:auto; display:flex; flex-direction:column; gap:8px; flex:1; min-height:60px;"></div>
+    <button onclick="closeMyListings()" style="width:100%; background:#333; color:#fff; border-radius:14px; padding:10px; flex-shrink:0;">Закрыть</button>
+  </div>
+</div>
+
+<!-- МОДАЛ: СОЗДАТЬ ЛОТ -->
+<div id="create-listing-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:9999;">
+  <div class="box" style="max-width:340px; width:90%; max-height:88vh; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
+
+    <h3 style="margin:0; text-align:center; flex-shrink:0;">🏷️ Выставить на продажу</h3>
+
+    <!-- Категория -->
+    <div style="display:flex; gap:6px; flex-shrink:0;">
+      <div class="craft-filter-btn active" onclick="clSetCategory('resource')" data-lcat="resource">🪨 Ресурсы</div>
+      <div class="craft-filter-btn"        onclick="clSetCategory('ingot')"    data-lcat="ingot">⚗️ Слитки</div>
+      <div class="craft-filter-btn"        onclick="clSetCategory('pickaxe')"  data-lcat="pickaxe">⛏️ Кирки</div>
+    </div>
+
+    <!-- Выбор предмета (скролл) -->
+    <div style="overflow-y:auto; flex:1; min-height:80px;">
+      <div id="cl-item-grid" style="gap:6px;"></div>
+      <div id="cl-pickaxe-list" style="gap:6px;"></div>
+    </div>
+
+    <!-- Ввод (показывается после выбора предмета) -->
+    <div id="cl-input-section" style="display:none; flex-direction:column; gap:6px; flex-shrink:0;">
+      <div id="cl-selected-label" style="font-size:12px; font-weight:700; color:var(--accent); text-align:center; padding:6px; background:rgba(245,199,122,0.08); border-radius:8px;"></div>
+
+      <div id="cl-qty-row">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Количество:</div>
+        <input id="cl-qty" type="number" min="1" placeholder="Кол-во" oninput="clUpdatePreview()"
+          style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:var(--panel-soft); color:#fff; font-size:13px;">
+      </div>
+
+      <div>
+        <div id="cl-price-label" style="font-size:12px; color:var(--muted); margin-bottom:4px;">Цена за единицу (DC, мин. 0.1):</div>
+        <input id="cl-price" type="number" min="0.1" step="0.1" placeholder="0.1" oninput="clUpdatePreview()"
+          style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:var(--panel-soft); color:#fff; font-size:13px;">
+      </div>
+
+      <div id="cl-preview" style="display:none; font-size:14px; font-weight:800; color:#f5c77a; text-align:center; padding:8px; background:rgba(245,199,122,0.08); border-radius:10px;"></div>
+    </div>
+
+    <div style="display:flex; gap:8px; flex-shrink:0;">
+      <button onclick="closeCreateListing()" style="flex:1; padding:10px; background:#333; color:#fff; border-radius:14px; font-size:13px;">Отмена</button>
+      <button onclick="clSubmit()" style="flex:2; padding:10px; border-radius:14px; font-size:13px;">📦 Выставить</button>
+    </div>
+
+  </div>
+</div>
   <!-- ===== NAV ===== -->
   <div class="nav-wrapper">
     <div class="nav">
@@ -1092,6 +1160,9 @@ if (tab === "craft") {
 } else {
   if (_craftLiveInterval) { clearInterval(_craftLiveInterval); _craftLiveInterval = null; }
   if (_craftRefreshInterval) { clearInterval(_craftRefreshInterval); _craftRefreshInterval = null; }
+}
+if (tab === "market") {
+  loadMarket();
 }
 
 }
@@ -4045,6 +4116,414 @@ function renderInventory(player) {
 
   document.getElementById('inv-grid').innerHTML = rawResources.map(makeCard).join('');
   document.getElementById('inv-ingots').innerHTML = ingots.map(makeCard).join('');
+}
+
+// =======================
+// MARKET
+// =======================
+
+const MARKET_ITEM_LABELS = {
+  stone:         { icon:'🪨', label:'Камень',          color:'#6e7a8a' },
+  coal:          { icon:'⚫', label:'Уголь',            color:'#4a4a5a' },
+  copper:        { icon:'🟠', label:'Медь',             color:'#c87533' },
+  iron:          { icon:'⚙️', label:'Железо',           color:'#8a8a9a' },
+  gold:          { icon:'🌕', label:'Золото',           color:'#f5c77a' },
+  diamond:       { icon:'💎', label:'Алмаз',            color:'#7fffd4' },
+  copper_ingot:  { icon:'🟠', label:'Медный слиток',    color:'#c87533' },
+  iron_ingot:    { icon:'⚙️', label:'Железный слиток',  color:'#8a8a9a' },
+  gold_ingot:    { icon:'🌕', label:'Золотой слиток',   color:'#f5c77a' },
+  diamond_ingot: { icon:'💎', label:'Алмазный слиток',  color:'#7fffd4' },
+  copper_pick:   { icon:'⛏️', label:'Медная кирка',     color:'#c87533' },
+  iron_pick:     { icon:'⛏️', label:'Железная кирка',   color:'#8a8a9a' },
+  gold_pick:     { icon:'⛏️', label:'Золотая кирка',    color:'#f5c77a' },
+  diamond_pick:  { icon:'⛏️', label:'Алмазная кирка',   color:'#7fffd4' },
+};
+
+let _marketFilter = 'all';
+let _marketSort   = 'newest';
+let _marketCache  = [];
+
+async function loadMarket() {
+  try {
+    const res = await fetch(`${API_URL}/market/listings?category=${_marketFilter}&sort=${_marketSort}`);
+    _marketCache = await res.json();
+    document.getElementById('market-stats').innerText =
+      `${_marketCache.length} активных лотов  ·  комиссия 5%`;
+    renderMarketListings();
+  } catch(e) { console.error('loadMarket:', e); }
+}
+
+function setMarketFilter(f) {
+  _marketFilter = f;
+  document.querySelectorAll('[data-mfilter]').forEach(b => b.classList.toggle('active', b.dataset.mfilter === f));
+  loadMarket();
+}
+
+function setMarketSort(s) {
+  _marketSort = s;
+  document.querySelectorAll('[data-msort]').forEach(b => b.classList.toggle('active', b.dataset.msort === s));
+  loadMarket();
+}
+
+function renderMarketListings() {
+  const el = document.getElementById('market-listings-list');
+  if (!_marketCache.length) {
+    el.innerHTML = `<div style="text-align:center; padding:28px 16px; background:var(--panel); border-radius:14px; color:var(--muted); font-size:13px;">
+      🏪 Рынок пуст<br><span style="font-size:11px; margin-top:4px; display:block;">Стань первым продавцом!</span>
+    </div>`;
+    return;
+  }
+  const now = Date.now();
+  el.innerHTML = _marketCache.map(l => {
+    const info = MARKET_ITEM_LABELS[l.item_type] || { icon:'📦', label: l.item_type, color:'#555' };
+    const isMine  = String(l.seller_id) === String(currentUserId);
+    const total   = (l.price_per_unit * l.quantity).toFixed(2);
+    const hoursLeft = Math.max(0, Math.floor((l.expires_at - now) / 3600000));
+    const timeColor = hoursLeft < 6 ? '#ff6b6b' : 'var(--muted)';
+    const borderColor = l.item_category === 'ingot' ? '#f5c77a'
+                      : l.item_category === 'pickaxe' ? (info.color || '#4fdcff')
+                      : '#4fdcff';
+
+    let detail = '';
+    if (l.item_category === 'pickaxe' && l.item_data) {
+      try {
+        const d = JSON.parse(l.item_data);
+        const def = d.is_defective ? ` <span style="color:#ff6b6b;">[Брак]</span>` : '';
+        detail = `<div style="font-size:11px; color:var(--muted);">⚡ +${d.bonus_mining}% добычи &nbsp;|&nbsp; 🛡 ${d.durability}/${d.max_durability}${def}</div>`;
+      } catch {}
+    } else {
+      detail = `<div style="font-size:11px; color:var(--muted);">${l.quantity} шт. × ${l.price_per_unit} DC/шт</div>`;
+    }
+
+    return `
+      <div style="padding:12px 14px; background:var(--panel); border-radius:13px; border-left:3px solid ${borderColor};">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:28px; flex-shrink:0; line-height:1;">${info.icon}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:700;">${info.label}</div>
+            ${detail}
+            <div style="font-size:10px; color:var(--muted); margin-top:3px;">
+              Продавец #${String(l.seller_id).slice(-6)}
+              &nbsp;|&nbsp; <span style="color:${timeColor};">⏱ ${hoursLeft}ч</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0;">
+            <div style="font-size:15px; font-weight:800; color:#f5c77a; white-space:nowrap;">${total} DC</div>
+            ${isMine
+              ? `<div style="font-size:10px; color:var(--muted); padding:4px 8px; background:rgba(255,255,255,0.05); border-radius:6px;">Мой лот</div>`
+              : `<button onclick="buyListing(${l.id})" style="padding:6px 14px; font-size:12px; border-radius:9px; background:linear-gradient(180deg,#4cd964,#2ea84e); color:#fff; font-weight:700;">Купить</button>`
+            }
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function buyListing(listingId) {
+  if (_actionLock) return;
+  const l = _marketCache.find(x => x.id === listingId);
+  if (!l) return;
+  const info  = MARKET_ITEM_LABELS[l.item_type] || { label: l.item_type };
+  const total = (l.price_per_unit * l.quantity).toFixed(2);
+
+  let msg = `Купить: ${info.icon || ''} ${info.label}\n`;
+  if (l.item_category === 'pickaxe' && l.item_data) {
+    try { const d=JSON.parse(l.item_data); msg += `⚡ +${d.bonus_mining}%  🛡 ${d.durability}/${d.max_durability}\n`; } catch {}
+  } else {
+    msg += `Количество: ${l.quantity}\n`;
+  }
+  msg += `Итого: ${total} DC`;
+  if (!confirm(msg)) return;
+
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/market/listing/buy`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id: currentUserId, listing_id: listingId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_DC:     `Недостаточно DC (нужно ${(data.required||0).toFixed(2)})`,
+        LISTING_NOT_FOUND: 'Лот уже продан или снят',
+        LISTING_EXPIRED:   'Срок лота истёк',
+        CANT_BUY_OWN:      'Нельзя покупать свой лот',
+      };
+      alert(msgs[data.error] || data.error);
+      loadMarket();
+      return;
+    }
+    alert(`✅ Куплено!\nПотрачено: ${data.total_paid.toFixed(2)} DC`);
+    await Promise.all([loadMarket(), loadPlayerDataOnly()]);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+// ── МОИ ЛОТЫ ──
+async function openMyListings() {
+  const res = await fetch(`${API_URL}/market/my-listings?user_id=${currentUserId}`);
+  const listings = await res.json();
+  const el  = document.getElementById('my-listings-list');
+  const now = Date.now();
+  if (!listings.length) {
+    el.innerHTML = `<div style="color:var(--muted); font-size:13px; padding:16px; text-align:center;">Активных лотов нет</div>`;
+  } else {
+    el.innerHTML = listings.map(l => {
+      const info  = MARKET_ITEM_LABELS[l.item_type] || { icon:'📦', label: l.item_type };
+      const total = (l.price_per_unit * l.quantity).toFixed(2);
+      const hoursLeft = Math.max(0, Math.floor((l.expires_at - now) / 3600000));
+      let detail = '';
+      if (l.item_category === 'pickaxe' && l.item_data) {
+        try { const d=JSON.parse(l.item_data); detail=`+${d.bonus_mining}% | 🛡${d.durability}`; } catch {}
+      } else {
+        detail = `${l.quantity} шт.`;
+      }
+      return `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--panel); border-radius:12px; gap:8px;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:600;">${info.icon} ${info.label}</div>
+            <div style="font-size:11px; color:var(--muted);">${detail} — ${total} DC &nbsp;|&nbsp; ⏱ ${hoursLeft}ч</div>
+          </div>
+          <button onclick="cancelListing(${l.id})" style="padding:5px 12px; font-size:11px; background:#333; color:#ff6b6b; border-radius:8px; flex-shrink:0;">Снять</button>
+        </div>`;
+    }).join('');
+  }
+  document.getElementById('my-listings-modal').style.display = 'flex';
+}
+
+function closeMyListings() {
+  document.getElementById('my-listings-modal').style.display = 'none';
+}
+
+async function cancelListing(listingId) {
+  if (_actionLock) return;
+  if (!confirm('Снять лот? Предмет вернётся в инвентарь.')) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/market/listing/cancel`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id: currentUserId, listing_id: listingId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert('✅ Лот снят, предмет возвращён');
+    closeMyListings();
+    await Promise.all([loadMarket(), loadPlayerDataOnly()]);
+  } finally {
+    hideActionLoader();
+  }
+}
+
+// ── СОЗДАТЬ ЛОТ ──
+let _clCat  = 'resource';
+let _clItem = null;       // string для ресурса/слитка, object для кирки
+let _clPickaxeMap = {};
+let _clData = null;
+
+async function openCreateListing() {
+  if (_actionLock) return;
+  const [userData, craftData] = await Promise.all([
+    fetch(`${API_URL}/getUser?user_id=${currentUserId}`).then(r=>r.json()),
+    fetch(`${API_URL}/player/craft?user_id=${currentUserId}`).then(r=>r.json())
+  ]);
+  _clData = { ...userData, items: craftData.items || [] };
+  _clCat  = 'resource';
+  _clItem = null;
+
+  document.querySelectorAll('[data-lcat]').forEach(b => b.classList.toggle('active', b.dataset.lcat === 'resource'));
+  document.getElementById('cl-input-section').style.display = 'none';
+  document.getElementById('cl-preview').style.display       = 'none';
+  if (document.getElementById('cl-qty'))   document.getElementById('cl-qty').value   = '';
+  if (document.getElementById('cl-price')) document.getElementById('cl-price').value = '';
+
+  document.getElementById('create-listing-modal').style.display = 'flex';
+  _clRenderGrid();
+}
+
+function closeCreateListing() {
+  document.getElementById('create-listing-modal').style.display = 'none';
+}
+
+function clSetCategory(cat) {
+  _clCat  = cat;
+  _clItem = null;
+  document.querySelectorAll('[data-lcat]').forEach(b => b.classList.toggle('active', b.dataset.lcat === cat));
+  document.getElementById('cl-input-section').style.display = 'none';
+  document.getElementById('cl-preview').style.display       = 'none';
+  if (document.getElementById('cl-qty'))   document.getElementById('cl-qty').value   = '';
+  if (document.getElementById('cl-price')) document.getElementById('cl-price').value = '';
+  _clRenderGrid();
+}
+
+function _clRenderGrid() {
+  const res   = _clData?.resources || {};
+  const items = _clData?.items     || [];
+  const gridEl = document.getElementById('cl-item-grid');
+  const pickEl = document.getElementById('cl-pickaxe-list');
+
+  if (_clCat === 'resource' || _clCat === 'ingot') {
+    pickEl.style.display = 'none';
+    const keys = _clCat === 'resource'
+      ? ['stone','coal','copper','iron','gold','diamond']
+      : ['copper_ingot','iron_ingot','gold_ingot','diamond_ingot'];
+    const cols = _clCat === 'ingot' ? 2 : 3;
+    gridEl.style.display              = 'grid';
+    gridEl.style.gridTemplateColumns  = `repeat(${cols}, 1fr)`;
+    gridEl.innerHTML = keys.map(k => {
+      const info   = MARKET_ITEM_LABELS[k];
+      const amount = res[k] || 0;
+      const dim    = amount === 0 ? 'opacity:0.4; pointer-events:none;' : '';
+      const sel    = _clItem === k
+        ? 'border-color:#f5c77a; background:rgba(245,199,122,0.12); box-shadow:0 0 0 1px rgba(245,199,122,0.25);'
+        : '';
+      return `<div onclick="clSelectItem('${k}')" style="
+        padding:10px 6px; border-radius:10px; background:var(--panel-soft);
+        border:1px solid rgba(255,255,255,0.08); text-align:center; cursor:pointer;
+        transition:all 0.15s; ${dim}${sel}">
+        <div style="font-size:22px;">${info.icon}</div>
+        <div style="font-size:11px; font-weight:600; margin-top:3px; color:#fff;">${info.label}</div>
+        <div style="font-size:11px; color:var(--muted);">${amount > 999 ? (amount/1000).toFixed(1)+'k' : amount}</div>
+      </div>`;
+    }).join('');
+
+  } else {
+    gridEl.style.display = 'none';
+    pickEl.style.display = 'flex';
+    pickEl.style.flexDirection = 'column';
+    _clPickaxeMap = {};
+
+    if (!items.length) {
+      pickEl.innerHTML = `<div style="color:var(--muted); font-size:13px; padding:16px; text-align:center; background:var(--panel); border-radius:12px;">Нет кирок для продажи</div>`;
+    } else {
+      items.forEach(it => { _clPickaxeMap[it.id] = it; });
+      pickEl.innerHTML = items.map(it => {
+        const info = MARKET_ITEM_LABELS[it.item_type] || { icon:'⛏️', label: it.item_type, color:'#4fdcff' };
+        const def  = it.is_defective ? ` <span style="color:#ff6b6b;">[Брак]</span>` : '';
+        const durPct   = Math.round((it.durability / it.max_durability) * 100);
+        const durColor = durPct > 60 ? '#4cd964' : durPct > 30 ? '#f5c77a' : '#ff6b6b';
+        const sel  = _clItem?.id === it.id
+          ? 'border-color:#f5c77a; background:rgba(245,199,122,0.1);'
+          : '';
+        return `<div onclick="clSelectPickaxe(${it.id})" style="
+          padding:10px 12px; border-radius:10px; background:var(--panel-soft);
+          border:1px solid rgba(255,255,255,0.08); cursor:pointer; transition:all 0.15s; ${sel}">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:13px; font-weight:600;">${info.icon} ${info.label}${def}</div>
+            <div style="font-size:11px; color:${durColor};">🛡 ${it.durability}/${it.max_durability}</div>
+          </div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">⚡ +${it.bonus_mining}% к добыче</div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+function clSelectItem(key) {
+  _clItem = key;
+  const info   = MARKET_ITEM_LABELS[key];
+  const amount = (_clData?.resources || {})[key] || 0;
+  document.getElementById('cl-selected-label').innerText =
+    `${info.icon} ${info.label}  (в наличии: ${amount})`;
+  document.getElementById('cl-qty-row').style.display   = 'block';
+  document.getElementById('cl-price-label').innerText   = 'Цена за единицу (DC, мин. 0.1):';
+  document.getElementById('cl-qty').max                 = amount;
+  document.getElementById('cl-qty').value               = '';
+  document.getElementById('cl-price').value             = '';
+  document.getElementById('cl-input-section').style.display = 'flex';
+  document.getElementById('cl-preview').style.display   = 'none';
+  _clRenderGrid();
+}
+
+function clSelectPickaxe(itemId) {
+  _clItem = _clPickaxeMap[itemId];
+  if (!_clItem) return;
+  const info = MARKET_ITEM_LABELS[_clItem.item_type] || { icon:'⛏️', label:'Кирка' };
+  const def  = _clItem.is_defective ? ' [Брак]' : '';
+  document.getElementById('cl-selected-label').innerText =
+    `${info.icon} ${info.label}${def}  ·  +${_clItem.bonus_mining}%  ·  🛡${_clItem.durability}`;
+  document.getElementById('cl-qty-row').style.display   = 'none';
+  document.getElementById('cl-price-label').innerText   = 'Цена продажи (DC, мин. 0.1):';
+  document.getElementById('cl-price').value             = '';
+  document.getElementById('cl-input-section').style.display = 'flex';
+  document.getElementById('cl-preview').style.display   = 'none';
+  _clRenderGrid();
+}
+
+function clUpdatePreview() {
+  const previewEl = document.getElementById('cl-preview');
+  const price = parseFloat(document.getElementById('cl-price').value);
+  if (_clCat === 'pickaxe') {
+    if (!_clItem || isNaN(price) || price < 0.1) { previewEl.style.display='none'; return; }
+    previewEl.innerText = `Итого: ${price.toFixed(2)} DC`;
+    previewEl.style.display = 'block';
+    return;
+  }
+  const qty = parseInt(document.getElementById('cl-qty').value);
+  if (!_clItem || isNaN(qty) || qty <= 0 || isNaN(price) || price < 0.1) {
+    previewEl.style.display = 'none'; return;
+  }
+  previewEl.innerText = `Итого: ${(qty * price).toFixed(2)} DC`;
+  previewEl.style.display = 'block';
+}
+
+async function clSubmit() {
+  if (_actionLock) return;
+  if (!_clItem) { alert('Выберите предмет'); return; }
+
+  const price = parseFloat(document.getElementById('cl-price').value);
+  if (isNaN(price) || price < 0.1) { alert('Минимальная цена: 0.1 DC'); return; }
+
+  let body;
+  if (_clCat === 'pickaxe') {
+    const info = MARKET_ITEM_LABELS[_clItem.item_type] || { label:'Кирка' };
+    const def  = _clItem.is_defective ? ' [Брак]' : '';
+    if (!confirm(`Выставить ${info.label}${def}\n+${_clItem.bonus_mining}%  🛡${_clItem.durability}/${_clItem.max_durability}\nЦена: ${price.toFixed(2)} DC\n\nЛот действует 48 часов.`)) return;
+    body = {
+      user_id: currentUserId,
+      item_type:    _clItem.item_type,
+      item_category:'pickaxe',
+      quantity:     1,
+      price_per_unit: price,
+      item_id:      _clItem.id
+    };
+  } else {
+    const qty  = parseInt(document.getElementById('cl-qty').value);
+    if (isNaN(qty) || qty <= 0) { alert('Введите количество'); return; }
+    const info = MARKET_ITEM_LABELS[_clItem];
+    if (!confirm(`Выставить ${qty}× ${info?.label}\n${price} DC/шт = ${(qty*price).toFixed(2)} DC итого\n\nЛот действует 48 часов.`)) return;
+    body = {
+      user_id: currentUserId,
+      item_type:    _clItem,
+      item_category: _clCat,
+      quantity:     qty,
+      price_per_unit: price
+    };
+  }
+
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/market/listing/create`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_RESOURCES: 'Недостаточно ресурсов',
+        LISTING_LIMIT:        'Максимум 10 активных лотов на игрока',
+        INVALID_AMOUNT:       'Неверная сумма или количество',
+        ITEM_NOT_FOUND:       'Предмет не найден',
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    alert('✅ Лот выставлен на рынок!');
+    closeCreateListing();
+    await Promise.all([loadMarket(), loadPlayerDataOnly()]);
+  } finally {
+    hideActionLoader();
+  }
 }
 
 loadPlayer();
