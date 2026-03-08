@@ -3994,7 +3994,12 @@ async function takeOrder(orderId) {
     });
     const data = await res.json();
     if (data.error) {
-      const msgs = { ALREADY_HAS_ORDER:'У вас уже есть активный заказ', NOT_A_WORKER:'Нет лицензии работника', ORDER_EXPIRED:'Заказ истёк' };
+      const msgs = {
+        ALREADY_HAS_ORDER:      'У вас уже есть активный заказ',
+        NOT_A_WORKER:           'Нет лицензии работника',
+        ORDER_EXPIRED:          'Заказ истёк',
+        MINING_IN_PROGRESS:     '⛏️ Вы сейчас в шахте! Сначала завершите добычу.'
+      };
       alert(msgs[data.error] || data.error);
       return;
     }
