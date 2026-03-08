@@ -3542,9 +3542,16 @@ function renderCraftCompanies() {
     return;
   }
   el.innerHTML = list.map(c => {
-    const typeIcon = c.type === 'smelter' ? '🔥' : '⚒️';
+    const typeIcon     = c.type === 'smelter' ? '🔥' : '⚒️';
     const qualityColor = c.quality >= 7 ? '#4cd964' : c.quality >= 4 ? '#f5c77a' : '#9aa0b4';
-    const stateLabel = c.is_state ? ' <span style="font-size:10px; color:var(--muted);">[Гос.]</span>' : '';
+    const stateLabel   = c.is_state ? ' <span style="font-size:10px; color:var(--muted);">[Гос.]</span>' : '';
+
+    // Бейдж проблем цеха
+    const wsIssues = c.workshop_issues || [];
+    const wsBadge  = wsIssues.length > 0
+      ? `&nbsp;|&nbsp;<span style="color:#ff6b6b;">⚠️ Проблем: ${wsIssues.length}</span>`
+      : (!c.is_state ? `&nbsp;|&nbsp;<span style="color:#4cd964; font-size:10px;">✅ Цех OK</span>` : '');
+
     return `
       <div onclick="openCompanyModal(${c.id})" style="padding:12px; background:var(--panel); border-radius:12px; cursor:pointer; border-left:3px solid ${c.is_state ? '#9aa0b4' : '#4fdcff'};">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -3556,6 +3563,7 @@ function renderCraftCompanies() {
           Работников: ${c.activeWorkers} &nbsp;|&nbsp;
           Очередь: ${c.pendingOrders}
           ${!c.is_state ? `&nbsp;|&nbsp; Наценка: ×${c.price_multiplier}` : ''}
+          ${wsBadge}
         </div>
       </div>`;
   }).join('');
@@ -3738,6 +3746,10 @@ async function openCompanyModal(companyId) {
     workersSection.style.display = 'none';
   }
 
+  // Кнопка цеха (только лидер, не гос.)
+  document.getElementById('company-workshop-btn').style.display =
+    (isLeader && !isState) ? 'block' : 'none';
+
   // Кнопка настроек (только лидер, не гос)
   document.getElementById('company-settings-btn').style.display =
     (isLeader && !isState) ? 'block' : 'none';
@@ -3758,6 +3770,52 @@ async function openCompanyModal(companyId) {
   } else {
     upgradeEl.style.display = 'none';
   }
+
+  // Статус цеха — виден всем, не только лидеру
+  const wsIssues   = company.workshop?.penalties?.issues || [];
+  const wsIssueLabels = {
+    no_coal:   '⚫ Нет угля',
+    mech_worn: '⚙️ Изношен механизм',
+    breakdown: '🔧 Поломка'
+  };
+
+  let wsStatusHtml = '';
+  if (!isState) {
+    if (wsIssues.length > 0) {
+      const pt = company.workshop?.penalties;
+      wsStatusHtml = `
+        <div style="padding:10px 12px; background:rgba(255,107,107,0.08);
+          border:1px solid rgba(255,107,107,0.3); border-radius:12px;
+          font-size:12px; color:#ff6b6b; margin-bottom:6px;">
+          ⚠️ Проблемы цеха: ${wsIssues.map(i => wsIssueLabels[i] || i).join(' • ')}<br>
+          <span style="font-size:10px; color:var(--muted);">
+            ×${pt?.timeMultiplier?.toFixed(0) || 1} к времени &nbsp;|&nbsp;
+            шанс ×${pt?.successMultiplier?.toFixed(2) || 1}
+          </span>
+        </div>`;
+    } else if (company.workshop) {
+      const coal = company.workshop.coal ?? 0;
+      const coalColor = coal <= 0 ? '#ff6b6b' : coal < 20 ? '#f5c77a' : '#4cd964';
+      wsStatusHtml = `
+        <div style="padding:8px 12px; background:rgba(76,217,100,0.06);
+          border:1px solid rgba(76,217,100,0.2); border-radius:12px;
+          font-size:11px; color:#4cd964; margin-bottom:6px; display:flex;
+          justify-content:space-between; align-items:center;">
+          <span>✅ Цех работает нормально</span>
+          <span style="color:${coalColor};">⚫ Уголь: ${coal}</span>
+        </div>`;
+    }
+  }
+
+  // Вставляем статус цеха перед рецептами
+  let wsStatusEl = document.getElementById('company-workshop-status');
+  if (!wsStatusEl) {
+    wsStatusEl = document.createElement('div');
+    wsStatusEl.id = 'company-workshop-status';
+    const recipesSection = document.getElementById('company-recipes-list');
+    recipesSection.parentNode.insertBefore(wsStatusEl, recipesSection);
+  }
+  wsStatusEl.innerHTML = wsStatusHtml;
 
   document.getElementById('company-modal').style.display = 'flex';
 }
