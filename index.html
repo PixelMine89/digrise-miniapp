@@ -4744,6 +4744,214 @@ async function clSubmit() {
   }
 }
 
+// =======================
+// WORKSHOP
+// =======================
+
+const WORKSHOP_MECHANISMS_CLIENT = {
+  smelter: [
+    { name: 'Печь',       icon: '🔥', repair_cost: { iron_ingot: 2 } },
+    { name: 'Мехи',       icon: '💨', repair_cost: { iron_ingot: 1, copper_ingot: 1 } },
+    { name: 'Охлаждение', icon: '❄️', repair_cost: { copper_ingot: 2 } },
+  ],
+  forge: [
+    { name: 'Наковальня', icon: '⚒️', repair_cost: { iron_ingot: 3 } },
+    { name: 'Молот',      icon: '🔨', repair_cost: { iron_ingot: 2 } },
+    { name: 'Точило',     icon: '⚙️', repair_cost: { iron_ingot: 1, copper_ingot: 1 } },
+  ],
+};
+
+let _workshopCompany = null;
+let _workshopData = null;
+
+async function openWorkshop(companyId) {
+  if (_actionLock) return;
+  _workshopCompany = selectedCompany;
+  const res = await fetch(`${API_URL}/craft/workshop/${companyId}`);
+  if (!res.ok) { alert('Цех не найден'); return; }
+  _workshopData = await res.json();
+  renderWorkshop();
+  document.getElementById('workshop-modal').style.display = 'flex';
+}
+
+function closeWorkshop() {
+  document.getElementById('workshop-modal').style.display = 'none';
+  _workshopData = null;
+}
+
+function renderWorkshop() {
+  if (!_workshopData || !_workshopCompany) return;
+  const wd = _workshopData;
+  const penalties = wd.penalties || { issues: [] };
+
+  // Штрафы
+  const penEl = document.getElementById('ws-penalties');
+  if (penalties.issues.length === 0) {
+    penEl.innerHTML = `<div style="padding:8px 12px; background:rgba(76,217,100,0.1); border:1px solid rgba(76,217,100,0.3); border-radius:10px; font-size:12px; color:#4cd964; text-align:center;">✅ Цех работает нормально</div>`;
+  } else {
+    const issueLabels = {
+      no_coal: '⚫ Нет угля',
+      mech_worn: '⚙️ Механизм изношен',
+      breakdown: '🔧 Поломка'
+    };
+    const issueText = penalties.issues.map(i => issueLabels[i] || i).join('  •  ');
+    penEl.innerHTML = `
+      <div style="padding:8px 12px; background:rgba(255,107,107,0.1); border:1px solid rgba(255,107,107,0.3); border-radius:10px; font-size:12px; color:#ff6b6b;">
+        ⚠️ Активные проблемы: ${issueText}
+      </div>
+      <div style="margin-top:5px; font-size:11px; color:var(--muted); text-align:center;">
+        Каждая проблема: ×${penalties.timeMultiplier.toFixed(0)} к времени,
+        шанс ×${penalties.successMultiplier.toFixed(2)}
+      </div>`;
+  }
+
+  // Уголь
+  const coalEl = document.getElementById('ws-coal-amount');
+  coalEl.innerText = wd.coal;
+  coalEl.style.color = wd.coal <= 0 ? '#ff6b6b' : wd.coal < 20 ? '#f5c77a' : '#4cd964';
+
+  // Механизмы
+  const mechs = WORKSHOP_MECHANISMS_CLIENT[_workshopCompany.type] || [];
+  const wears = [wd.mech1_wear, wd.mech2_wear, wd.mech3_wear];
+  const mechEl = document.getElementById('ws-mechanisms');
+  mechEl.innerHTML = mechs.map((m, i) => {
+    const wear = wears[i] || 0;
+    const wearColor = wear > 60 ? '#4cd964' : wear > 30 ? '#f5c77a' : '#ff6b6b';
+    const costStr = Object.entries(m.repair_cost)
+      .map(([k, v]) => `${v}× ${RESOURCE_LABELS[k] || k}`)
+      .join(', ');
+    return `
+      <div style="padding:10px 12px; background:var(--panel-soft); border-radius:11px; border-left:3px solid ${wearColor};">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <div style="font-size:13px; font-weight:600;">${m.icon} ${m.name}</div>
+          <div style="font-size:12px; font-weight:700; color:${wearColor};">${wear}%</div>
+        </div>
+        <div style="background:#1b2032; border-radius:4px; height:5px; margin-bottom:7px; overflow:hidden;">
+          <div style="height:100%; width:${wear}%; background:${wearColor}; border-radius:4px; transition:width 0.3s;"></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-size:10px; color:var(--muted);">Ремонт +50%: ${costStr}</div>
+          <button onclick="wsRepairMech(${i})" ${wear >= 100 ? 'disabled' : ''}
+            style="padding:4px 10px; font-size:11px; border-radius:8px;
+              ${wear >= 100 ? 'opacity:0.4;' : ''}">
+            🔧 Починить
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Поломки
+  const bdsEl = document.getElementById('ws-breakdowns-section');
+  const bdListEl = document.getElementById('ws-breakdowns-list');
+  const breakdowns = wd.breakdowns || [];
+  if (breakdowns.length > 0) {
+    bdsEl.style.display = 'block';
+    bdListEl.innerHTML = breakdowns.map(bd => {
+      const mechName = mechs[bd.mech_index]?.name || `Мех. ${bd.mech_index + 1}`;
+      const costStr = Object.entries(bd.required)
+        .map(([k, v]) => `${v}× ${RESOURCE_LABELS[k] || k}`)
+        .join(', ');
+      return `
+        <div style="padding:10px 12px; background:rgba(255,107,107,0.08); border:1px solid rgba(255,107,107,0.3); border-radius:11px;">
+          <div style="font-size:13px; font-weight:600; color:#ff6b6b; margin-bottom:4px;">🔧 Поломка: ${mechName}</div>
+          <div style="font-size:11px; color:var(--muted); margin-bottom:7px;">Требуется: ${costStr}</div>
+          <button onclick="wsFixBreakdown('${bd.id}')"
+            style="width:100%; padding:7px; font-size:12px; border-radius:9px;
+              background:linear-gradient(180deg,#ff6b6b,#cc3333); color:#fff; font-weight:700;">
+            ⚡ Устранить поломку
+          </button>
+        </div>`;
+    }).join('');
+  } else {
+    bdsEl.style.display = 'none';
+  }
+}
+
+async function wsDepositCoal() {
+  if (_actionLock || !_workshopCompany) return;
+  const qty = parseInt(document.getElementById('ws-coal-input').value);
+  if (!qty || qty <= 0) { alert('Введите количество'); return; }
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/workshop/coal/deposit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: _workshopCompany.id, amount: qty })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_COAL: `Недостаточно угля (есть: ${data.have})`,
+        NOT_LEADER: 'Только лидер может управлять цехом'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    document.getElementById('ws-coal-input').value = '';
+    // Обновляем данные
+    const updated = await fetch(`${API_URL}/craft/workshop/${_workshopCompany.id}`);
+    _workshopData = await updated.json();
+    renderWorkshop();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function wsRepairMech(mechIndex) {
+  if (_actionLock || !_workshopCompany) return;
+  const mech = WORKSHOP_MECHANISMS_CLIENT[_workshopCompany.type]?.[mechIndex];
+  if (!mech) return;
+  const costStr = Object.entries(mech.repair_cost).map(([k,v]) => `${v}× ${RESOURCE_LABELS[k]||k}`).join(', ');
+  if (!confirm(`Починить ${mech.icon} ${mech.name} (+50% износа)?\nСтоимость: ${costStr}`)) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/workshop/mechanism/repair`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: _workshopCompany.id, mech_index: mechIndex })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_RESOURCES: `Недостаточно ресурсов (нужно ${data.required} ${RESOURCE_LABELS[data.resource]||data.resource}, есть ${data.have})`,
+        ALREADY_FULL: 'Механизм в полном порядке'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const updated = await fetch(`${API_URL}/craft/workshop/${_workshopCompany.id}`);
+    _workshopData = await updated.json();
+    renderWorkshop();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function wsFixBreakdown(breakdownId) {
+  if (_actionLock || !_workshopCompany) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/workshop/breakdown/fix`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, company_id: _workshopCompany.id, breakdown_id: breakdownId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_RESOURCES: `Не хватает ресурсов (${RESOURCE_LABELS[data.resource]||data.resource}: нужно ${data.required}, есть ${data.have})`
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    const updated = await fetch(`${API_URL}/craft/workshop/${_workshopCompany.id}`);
+    _workshopData = await updated.json();
+    renderWorkshop();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
 loadPlayer();
 
 </script>
