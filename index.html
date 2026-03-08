@@ -1086,6 +1086,48 @@ button:disabled {
 
   </div>
 </div>
+  <!-- МОДАЛ: ЦЕХ КОМПАНИИ -->
+<div id="workshop-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:10001;">
+  <div class="box" style="max-width:340px; width:90%; max-height:85vh; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
+
+    <h3 style="margin:0; text-align:center; flex-shrink:0;">🏭 Цех компании</h3>
+
+    <!-- Штрафы сейчас -->
+    <div id="ws-penalties" style="flex-shrink:0;"></div>
+
+    <div style="overflow-y:auto; display:flex; flex-direction:column; gap:12px; flex:1;">
+
+      <!-- Уголь -->
+      <div style="padding:12px; background:var(--panel-soft); border-radius:12px; border-left:3px solid #4a4a5a;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div style="font-size:13px; font-weight:700;">⚫ Запас угля</div>
+          <div id="ws-coal-amount" style="font-size:15px; font-weight:800; color:#f5c77a;"></div>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">Расходуется при каждом заказе. При 0 — ×2 время и -25% шанс.</div>
+        <div style="display:flex; gap:8px;">
+          <input id="ws-coal-input" type="number" min="1" placeholder="Кол-во угля"
+            style="flex:1; padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:var(--panel); color:#fff; font-size:13px;">
+          <button onclick="wsDepositCoal()" style="padding:8px 14px; font-size:12px; border-radius:10px; flex-shrink:0;">Загрузить</button>
+        </div>
+      </div>
+
+      <!-- Механизмы -->
+      <div>
+        <div style="font-size:12px; color:var(--muted); margin-bottom:7px; text-transform:uppercase; letter-spacing:1px;">⚙️ Механизмы</div>
+        <div id="ws-mechanisms" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <!-- Поломки -->
+      <div id="ws-breakdowns-section" style="display:none;">
+        <div style="font-size:12px; color:#ff6b6b; margin-bottom:7px; text-transform:uppercase; letter-spacing:1px;">🔧 Поломки</div>
+        <div id="ws-breakdowns-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+    </div>
+
+    <button onclick="closeWorkshop()" style="width:100%; background:#333; color:#fff; border-radius:14px; padding:10px; flex-shrink:0;">Закрыть</button>
+  </div>
+</div>
   <!-- ===== NAV ===== -->
   <div class="nav-wrapper">
     <div class="nav">
