@@ -1031,6 +1031,7 @@ button:disabled {
 <!-- Реконструкция (только владелец, ресурсы кончились) -->
 <div id="mine-reconstruct-section" style="display:none;">
   <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Ресурсы исчерпаны. Запустить реконструкцию (3 суток)?</div>
+  <div id="mine-reconstruct-cost" style="font-size:12px; color:#f5c77a; margin-bottom:6px;"></div>
   <button onclick="startReconstruct()" style="width:100%; background:linear-gradient(180deg,#6a5acd,#483d8b); color:#fff;">
     🔄 Начать реконструкцию
   </button>
@@ -2902,6 +2903,16 @@ async function openMineModal(mineId) {
         }
       } else {
         // нет сессии — можно начать реконструкцию
+        if (mine.reconstruct_cost) {
+          const RC_LABELS = {
+            stone: '🪨 Камень', iron_ingot: '⚙️ Жел.сл.',
+            copper_ingot: '🟠 Мед.сл.', gold_ingot: '🌕 Зол.сл.', diamond_ingot: '💎 Алм.сл.'
+          };
+          document.getElementById('mine-reconstruct-cost').innerText =
+            'Стоимость: ' + Object.entries(mine.reconstruct_cost)
+              .map(([r, q]) => `${q} ${RC_LABELS[r] || r}`)
+              .join(', ');
+        }
         reconstructSection.style.display = 'block';
       }
     } catch(e) {
