@@ -3854,6 +3854,7 @@ async function openCompanyModal(companyId) {
     document.getElementById('company-worker-order-info').innerText =
       RECIPES_CLIENT[o.recipe]?.label || o.recipe;
     const completeBtn = document.getElementById('company-complete-btn');
+    completeBtn.style.display = 'none';
     function tickWorkerTimer() {
       const now = Date.now();
       const pct = Math.min(100, Math.round(((now - o.taken_at) / (o.ends_at - o.taken_at)) * 100));
