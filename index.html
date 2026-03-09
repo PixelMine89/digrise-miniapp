@@ -4408,7 +4408,7 @@ async function readOrder(orderId) {
         text = `Получен:\n${recipeName}\n\nДобавлен в ваш инвентарь.`;
       } else {
         icon = '💥'; title = 'Крафт не удался';
-        text = `«${recipeName}»\n\nНизкое качество компании — слиток не получился.\nМатериалы израсходованы.\n\n(Шанс успеха гос. предприятия: 25%)`;
+        text = `«${recipeName}»\n\nНизкое качество компании — слиток не получился.\nМатериалы израсходованы.`;
       }
     } else if (result.type === 'pickaxe') {
       if (result.success) {
