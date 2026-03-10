@@ -5582,18 +5582,23 @@ function renderDaily(data) {
     { icon:'🛒', text:'Купить товар на рынке',          done: (t.task4||0) >= 1 },
     { icon:'🗼', text:`Вложить 100+ камня в башню (${Math.min(t.task5||0, 100)}/100)`, done: (t.task5||0) >= 100 },
   ];
-  const allDone = TASK_DEFS.every(x => x.done);
-
-  document.getElementById('daily-tasks-list').innerHTML = TASK_DEFS.map(td =>
-    `<div class="daily-task-row${td.done ? ' done' : ''}">
-      <div class="daily-task-check${td.done ? ' done' : ''}">${td.done ? '✓' : ''}</div>
-      <div style="font-size:13px;">${td.icon} ${td.text}</div>
-    </div>`
-  ).join('');
+  const allDoneAlready = TASK_DEFS.every(x => x.done);
+document.getElementById('daily-tasks-list').innerHTML = TASK_DEFS.map(td =>
+  `<div class="daily-task-row${td.done ? ' done' : ''}">
+    <div class="daily-task-check${td.done ? ' done' : ''}">${td.done ? '✓' : ''}</div>
+    <div style="font-size:13px;">${td.icon} ${td.text}</div>
+  </div>`
+).join('') + (!allDoneAlready ? `
+  <div style="margin-top:8px; padding:8px 10px; background:rgba(245,199,122,0.07);
+    border:1px solid rgba(245,199,122,0.18); border-radius:10px;
+    font-size:11px; color:var(--muted); line-height:1.6;">
+    🎁 Выполни все 5 задач → <span style="color:var(--accent); font-weight:700;">открой сундук!</span><br>
+    Внутри: до 250 🪨 камня, руда, слитки. Сбрасывается в 00:00 UTC.
+  </div>` : '');
 
   // Сундук
   const chestOpened = !!data.chest_opened;
-  document.getElementById('daily-chest-section').style.display = (allDone && !chestOpened) ? 'block' : 'none';
+  document.getElementById('daily-chest-section').style.display = (allDoneAlready && !chestOpened) ? 'block' : 'none';
   document.getElementById('daily-chest-done').style.display    = chestOpened ? 'block' : 'none';
 }
 
@@ -5608,7 +5613,7 @@ async function claimStreak() {
     });
     const data = await res.json();
     if (data.error) { alert(data.error); return; }
-    alert(`🔥 День ${data.streak_day}!\n+${data.reward} 🪨 камня`);
+    alert(`🔥 День ${data.streak}!\n+${data.reward} 🪨 камня`);
     await loadDaily();
     await loadPlayerDataOnly();
   } finally {
