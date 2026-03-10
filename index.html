@@ -392,6 +392,22 @@ button:disabled {
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .inv-card:active { transform: scale(0.93); }
+
+    /* ===== DAILY TASKS ===== */
+.daily-task-row {
+  display:flex; align-items:center; gap:10px; padding:9px 11px;
+  background:var(--panel-soft); border-radius:10px;
+  transition: opacity 0.2s;
+}
+.daily-task-row.done { opacity:0.5; }
+.daily-task-check {
+  width:22px; height:22px; border-radius:7px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:13px;
+  border:1.5px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.04);
+}
+.daily-task-check.done {
+  background:rgba(76,217,100,0.18); border-color:rgba(76,217,100,0.5); color:#4cd964;
+}
   </style>
 </head>
 <body>
@@ -684,6 +700,43 @@ button:disabled {
     <div class="box" style="text-align:center;">
       <h3>📜 Задания</h3>
     </div>
+    <!-- ЕЖЕДНЕВНЫЕ ЗАДАНИЯ -->
+<div id="daily-box" class="box" style="margin-bottom:12px;">
+
+  <!-- Стрик входов -->
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+    <div style="font-weight:700; font-size:14px;">🔥 Серия входов</div>
+    <div id="streak-days" style="font-size:13px; color:var(--accent); font-weight:700;"></div>
+  </div>
+  <div id="streak-bar" style="display:flex; gap:5px; margin-bottom:10px;"></div>
+  <div id="streak-claim-section" style="display:none;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(245,199,122,0.08); border:1px solid rgba(245,199,122,0.2); border-radius:10px;">
+      <div>
+        <div style="font-size:11px; color:var(--muted);">Награда дня:</div>
+        <div id="streak-reward-label" style="font-size:14px; font-weight:700; color:var(--accent);"></div>
+      </div>
+      <button onclick="claimStreak()" style="padding:8px 16px; font-size:12px; border-radius:10px;">Забрать</button>
+    </div>
+  </div>
+  <div id="streak-claimed-label" style="display:none; font-size:12px; color:#4cd964; text-align:center; padding:6px 0;">✅ Награда дня получена</div>
+
+  <!-- Разделитель -->
+  <div style="height:1px; background:rgba(255,255,255,0.06); margin:12px 0;"></div>
+
+  <!-- 5 ежедневных задач -->
+  <div style="font-weight:700; font-size:14px; margin-bottom:9px;">📋 Ежедневные задачи</div>
+  <div id="daily-tasks-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+
+  <!-- Сундук -->
+  <div id="daily-chest-section" style="display:none; margin-top:12px;">
+    <button onclick="openChest()" style="width:100%; padding:14px; font-size:14px; font-weight:800; border-radius:14px; background:linear-gradient(180deg,#f5c77a,#d6a956); color:#000; box-shadow:0 4px 20px rgba(245,199,122,0.3);">
+      🎁 Открыть сундук!
+    </button>
+  </div>
+  <div id="daily-chest-done" style="display:none; margin-top:12px; text-align:center; font-size:12px; color:#4cd964; padding:8px; background:rgba(76,217,100,0.08); border-radius:10px; border:1px solid rgba(76,217,100,0.2);">
+    ✅ Сундук открыт — возвращайся завтра
+  </div>
+</div>
     <!-- TELEGRAM TASK -->
     <div class="box" id="channelTaskBox">
       <b>📢 Вступить в Telegram канал</b>
@@ -1561,6 +1614,8 @@ async function loadTasks() {
 
   // Партнёрские задания
   loadPartnerTasks();
+
+  loadDaily();
 
   document.getElementById("refLink").innerText = data.refLink;
 
@@ -5465,6 +5520,125 @@ async function furnaceContribute() {
     }
   } catch(e) { alert('Ошибка сети'); }
   finally { btn.disabled = false; btn.textContent = 'Вложить'; }
+}
+
+// =======================
+// DAILY QUESTS
+// =======================
+const STREAK_REWARDS_CLIENT = [5, 10, 15, 20, 25, 30, 50];
+
+async function loadDaily() {
+  try {
+    const res = await fetch(`${API_URL}/daily?user_id=${currentUserId}`);
+    const data = await res.json();
+    renderDaily(data);
+  } catch(e) { console.error('loadDaily:', e); }
+}
+
+function renderDaily(data) {
+  const streak = data.streak || {};
+  const days       = streak.days || 0;
+  const canClaim   = !!streak.can_claim;
+  const reward     = streak.reward || 0;
+  const projected  = streak.projected_days || 1;
+
+  // Подпись
+  document.getElementById('streak-days').innerText =
+    days > 0 ? `День ${days}` : 'Первый вход';
+
+  // Полоска 7 дней
+  const barEl = document.getElementById('streak-bar');
+  barEl.innerHTML = STREAK_REWARDS_CLIENT.map((r, i) => {
+    const dayNum    = i + 1;
+    const completed = dayNum < projected || (dayNum === projected && !canClaim);
+    const pending   = canClaim && dayNum === projected;
+    const bgColor   = completed ? '#4cd964' : pending ? '#f5c77a' : 'rgba(255,255,255,0.08)';
+    const txtColor  = completed ? '#000' : pending ? '#000' : 'var(--muted)';
+    const label     = i === 6 ? '7+' : String(dayNum);
+    return `<div style="flex:1; text-align:center;">
+      <div style="border-radius:8px; background:${bgColor}; height:28px;
+        display:flex; align-items:center; justify-content:center;
+        font-size:11px; font-weight:700; color:${txtColor}; margin-bottom:3px;">${label}</div>
+      <div style="font-size:9px; color:var(--muted);">${r}🪨</div>
+    </div>`;
+  }).join('');
+
+  // Кнопка забрать / уже забрано
+  if (canClaim) {
+    document.getElementById('streak-claim-section').style.display = 'block';
+    document.getElementById('streak-claimed-label').style.display = 'none';
+    document.getElementById('streak-reward-label').innerText = `+${reward} 🪨 камня`;
+  } else {
+    document.getElementById('streak-claim-section').style.display = 'none';
+    document.getElementById('streak-claimed-label').style.display = days > 0 ? 'block' : 'none';
+  }
+
+  // Задачи
+  const t = data.tasks || {};
+  const TASK_DEFS = [
+    { icon:'⛏️', text:'Завершить сессию добычи',      done: (t.task1||0) >= 1 },
+    { icon:'📦', text:'Разместить заказ в компании',   done: (t.task2||0) >= 1 },
+    { icon:'🏷️', text:'Выставить товар на рынок',     done: (t.task3||0) >= 1 },
+    { icon:'🛒', text:'Купить товар на рынке',          done: (t.task4||0) >= 1 },
+    { icon:'🗼', text:`Вложить 100+ камня в башню (${Math.min(t.task5||0, 100)}/100)`, done: (t.task5||0) >= 100 },
+  ];
+  const allDone = TASK_DEFS.every(x => x.done);
+
+  document.getElementById('daily-tasks-list').innerHTML = TASK_DEFS.map(td =>
+    `<div class="daily-task-row${td.done ? ' done' : ''}">
+      <div class="daily-task-check${td.done ? ' done' : ''}">${td.done ? '✓' : ''}</div>
+      <div style="font-size:13px;">${td.icon} ${td.text}</div>
+    </div>`
+  ).join('');
+
+  // Сундук
+  const chestOpened = !!data.chest_opened;
+  document.getElementById('daily-chest-section').style.display = (allDone && !chestOpened) ? 'block' : 'none';
+  document.getElementById('daily-chest-done').style.display    = chestOpened ? 'block' : 'none';
+}
+
+async function claimStreak() {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/daily/streak/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert(`🔥 День ${data.streak_day}!\n+${data.reward} 🪨 камня`);
+    await loadDaily();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function openChest() {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/daily/chest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    const labels = {
+      stone:'🪨 Камень', coal:'⚫ Уголь', copper:'🟠 Медь',
+      iron:'⚙️ Железо', gold:'🌕 Золото', diamond:'💎 Алмаз',
+      copper_ingot:'🟠 Медный слиток', iron_ingot:'⚙️ Железный слиток',
+      gold_ingot:'🌕 Золотой слиток', diamond_ingot:'💎 Алмазный слиток'
+    };
+    alert(`🎁 Сундук открыт!\n\n+${data.amount} ${labels[data.resource] || data.resource}`);
+    await loadDaily();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
 }
 
 loadPlayer();
