@@ -5294,7 +5294,7 @@ let furnaceTimerInterval = null;
 
 async function loadFurnaceData() {
   try {
-    const r = await fetch(`/furnace/current?user_id=${userId}`);
+    const r = await fetch(`${API_URL}/furnace/current?user_id=${currentUserId}`);
     furnaceData = await r.json();
     renderFurnace(furnaceData);
   } catch(e) { console.error('furnace load error', e); }
@@ -5387,14 +5387,14 @@ function startFurnaceBonusTimer(expiresAt) {
 async function furnaceContribute() {
   const amountRaw = document.getElementById('furnace-amount-input').value;
   const amount = Math.floor(parseFloat(amountRaw));
-  if (!amount || amount <= 0) return showToast('Введите количество');
+  if (!amount || amount <= 0) { alert('Введите количество'); return; }
   const btn = document.getElementById('furnace-contribute-btn');
   btn.disabled = true; btn.textContent = '...';
   try {
-    const r = await fetch('/furnace/contribute', {
+    const r = await fetch(`${API_URL}/furnace/contribute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, amount })
+      body: JSON.stringify({ user_id: currentUserId, amount })
     });
     const data = await r.json();
     if (!r.ok) {
@@ -5403,14 +5403,14 @@ async function furnaceContribute() {
         CYCLE_ENDED: 'Цикл уже завершён',
         INVALID_AMOUNT: 'Неверное количество'
       };
-      showToast(msgs[data.error] || data.error);
+      alert(msgs[data.error] || data.error);
     } else {
       document.getElementById('furnace-amount-input').value = '';
-      showToast(`✅ Вложено! Позиция: #${data.my_rank}`);
+      alert(`✅ Вложено! Позиция: #${data.my_rank}`);
       await loadFurnaceData();
-      await loadUserData();
+      await loadPlayerDataOnly();
     }
-  } catch(e) { showToast('Ошибка сети'); }
+  } catch(e) { alert('Ошибка сети'); }
   finally { btn.disabled = false; btn.textContent = 'Вложить'; }
 }
 
