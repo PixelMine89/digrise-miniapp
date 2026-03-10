@@ -442,6 +442,60 @@ button:disabled {
         <div style="color:var(--muted); font-size:12px; padding:8px; background:var(--panel); border-radius:10px;">Загрузка...</div>
       </div>
     </div>
+    <!-- ВЕЛИКИЙ ГОРН -->
+<div id="furnace-section" style="margin-top:18px;">
+  <div style="font-size:15px;font-weight:700;color:#f5c77a;margin-bottom:10px;">⚒️ Великий Горн</div>
+
+  <!-- Цикл -->
+  <div id="furnace-cycle-card" style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div>
+        <span style="font-size:13px;color:#aaa;">Сегодня Горн принимает:</span><br>
+        <span id="furnace-resource-label" style="font-size:17px;font-weight:700;color:#fff;"></span>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:11px;color:#aaa;">Сброс через</span><br>
+        <span id="furnace-timer" style="font-size:15px;font-weight:700;color:#f5c77a;font-family:monospace;"></span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#7ecfff;margin-bottom:10px;">🎁 Бонус победителей: <span id="furnace-bonus-label"></span></div>
+
+    <!-- Призовой фонд -->
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#12122a;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+      <span style="font-size:12px;color:#aaa;">Призовой фонд (топ-10):</span>
+      <span id="furnace-prize-pool" style="font-size:14px;font-weight:700;color:#f5c77a;"></span>
+    </div>
+
+    <!-- Мой вклад -->
+    <div id="furnace-my-stats" style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:12px;color:#ccc;">
+      <span>Мой вклад: <b id="furnace-my-contribution" style="color:#fff;">0</b></span>
+      <span>Позиция: <b id="furnace-my-rank" style="color:#f5c77a;">—</b></span>
+    </div>
+
+    <!-- Депозит -->
+    <div style="display:flex;gap:8px;">
+      <input id="furnace-amount-input" type="number" min="1" placeholder="Количество"
+        style="flex:1;background:#12122a;border:1px solid #333;border-radius:8px;padding:8px 10px;color:#fff;font-size:14px;outline:none;" />
+      <button id="furnace-contribute-btn" onclick="furnaceContribute()"
+        style="background:#f5c77a;color:#1a1208;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">
+        Вложить
+      </button>
+    </div>
+  </div>
+
+  <!-- Активный бонус (если есть) -->
+  <div id="furnace-active-bonus" style="display:none;background:#0d2a1a;border:1px solid #2a6a3a;border-radius:10px;padding:10px 14px;margin-bottom:10px;">
+    <span style="font-size:12px;color:#5dde8a;">✅ Активный бонус: </span>
+    <span id="furnace-active-bonus-label" style="font-size:13px;font-weight:700;color:#5dde8a;"></span>
+    <span id="furnace-active-bonus-timer" style="font-size:11px;color:#aaa;margin-left:6px;"></span>
+  </div>
+
+  <!-- Лидерборд -->
+  <div style="background:#1a1a2e;border-radius:12px;padding:12px;">
+    <div style="font-size:12px;color:#aaa;margin-bottom:8px;font-weight:600;">🏆 Топ-10 сегодня</div>
+    <div id="furnace-leaderboard"></div>
+  </div>
+</div>
   </div>
   
   <!-- ===== CRAFT ===== -->
@@ -1435,6 +1489,7 @@ async function loadPlayer() {
 
   showTab("mine");
   await loadWorld();
+  await loadFurnaceData();
   await loadPlayerAssets();
 }
 
@@ -5229,6 +5284,134 @@ async function wsFixBreakdown(breakdownId) {
   } finally {
     hideActionLoader();
   }
+}
+
+// =======================
+// FURNACE
+// =======================
+let furnaceData = null;
+let furnaceTimerInterval = null;
+
+async function loadFurnaceData() {
+  try {
+    const r = await fetch(`/furnace/current?user_id=${userId}`);
+    furnaceData = await r.json();
+    renderFurnace(furnaceData);
+  } catch(e) { console.error('furnace load error', e); }
+}
+
+const FURNACE_RESOURCE_LABELS = {
+  stone: '🪨 Камень', coal: '🪨 Уголь', copper: '🟤 Медь',
+  iron: '⚙️ Железо', gold: '🟡 Золото', diamond: '💎 Алмаз',
+  copper_ingot: '🔶 Медный слиток', iron_ingot: '⚙️ Железный слиток',
+  gold_ingot: '🏅 Золотой слиток', diamond_ingot: '💠 Алмазный слиток'
+};
+
+function renderFurnace(data) {
+  if (!data?.cycle) return;
+
+  document.getElementById('furnace-resource-label').textContent =
+    FURNACE_RESOURCE_LABELS[data.cycle.resource_type] || data.cycle.resource_type;
+  document.getElementById('furnace-bonus-label').textContent = data.cycle.bonus_label || '';
+  document.getElementById('furnace-prize-pool').textContent =
+    (data.prize_pool || 0).toFixed(2) + ' DC';
+  document.getElementById('furnace-my-contribution').textContent =
+    (data.my_contribution || 0).toLocaleString();
+  document.getElementById('furnace-my-rank').textContent =
+    data.my_rank ? `#${data.my_rank}` : '—';
+
+  // Лидерборд
+  const lb = document.getElementById('furnace-leaderboard');
+  if (!data.leaderboard?.length) {
+    lb.innerHTML = '<div style="color:#555;font-size:12px;text-align:center;padding:8px;">Пока никто не вкладывал</div>';
+  } else {
+    const medals = ['🥇','🥈','🥉'];
+    lb.innerHTML = data.leaderboard.map((c, i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #222;">
+        <span style="font-size:13px;color:${i < 3 ? '#f5c77a' : '#ccc'};">
+          ${medals[i] || `${i+1}.`} ${String(c.user_id).slice(-6)}
+        </span>
+        <span style="font-size:13px;font-weight:600;color:#fff;">${Number(c.total).toLocaleString()}</span>
+      </div>
+    `).join('');
+  }
+
+  // Активный бонус
+  const bonusEl = document.getElementById('furnace-active-bonus');
+  if (data.active_bonus && data.active_bonus.expires_at > Date.now()) {
+    bonusEl.style.display = 'block';
+    document.getElementById('furnace-active-bonus-label').textContent =
+      FURNACE_BONUSES_LABELS[data.active_bonus.bonus_type] || data.active_bonus.bonus_type;
+    startFurnaceBonusTimer(data.active_bonus.expires_at);
+  } else {
+    bonusEl.style.display = 'none';
+  }
+
+  // Таймер сброса
+  if (furnaceTimerInterval) clearInterval(furnaceTimerInterval);
+  furnaceTimerInterval = setInterval(() => {
+    const rem = data.cycle.ends_at - Date.now();
+    if (rem <= 0) {
+      document.getElementById('furnace-timer').textContent = '00:00:00';
+      clearInterval(furnaceTimerInterval);
+      loadFurnaceData(); // Обновляем — цикл сменился
+      return;
+    }
+    const h = Math.floor(rem / 3600000);
+    const m = Math.floor((rem % 3600000) / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('furnace-timer').textContent =
+      `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+const FURNACE_BONUSES_LABELS = {
+  mining_yield: '+20% добычи',
+  craft_speed: '-15% крафта',
+  pickaxe_bonus: '+25% кирок'
+};
+
+function startFurnaceBonusTimer(expiresAt) {
+  const el = document.getElementById('furnace-active-bonus-timer');
+  const tick = () => {
+    const rem = expiresAt - Date.now();
+    if (rem <= 0) { el.textContent = '(истёк)'; return; }
+    const h = Math.floor(rem / 3600000);
+    const m = Math.floor((rem % 3600000) / 60000);
+    el.textContent = `(ещё ${h}ч ${m}м)`;
+  };
+  tick();
+  setInterval(tick, 60000);
+}
+
+async function furnaceContribute() {
+  const amountRaw = document.getElementById('furnace-amount-input').value;
+  const amount = Math.floor(parseFloat(amountRaw));
+  if (!amount || amount <= 0) return showToast('Введите количество');
+  const btn = document.getElementById('furnace-contribute-btn');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const r = await fetch('/furnace/contribute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, amount })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      const msgs = {
+        NOT_ENOUGH_RESOURCES: `Недостаточно ресурса (есть ${data.have})`,
+        CYCLE_ENDED: 'Цикл уже завершён',
+        INVALID_AMOUNT: 'Неверное количество'
+      };
+      showToast(msgs[data.error] || data.error);
+    } else {
+      document.getElementById('furnace-amount-input').value = '';
+      showToast(`✅ Вложено! Позиция: #${data.my_rank}`);
+      await loadFurnaceData();
+      await loadUserData();
+    }
+  } catch(e) { showToast('Ошибка сети'); }
+  finally { btn.disabled = false; btn.textContent = 'Вложить'; }
 }
 
 loadPlayer();
