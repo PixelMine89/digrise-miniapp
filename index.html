@@ -444,57 +444,91 @@ button:disabled {
     </div>
     <!-- ВЕЛИКИЙ ГОРН -->
 <div id="furnace-section" style="margin-top:18px;">
-  <div style="font-size:15px;font-weight:700;color:#f5c77a;margin-bottom:10px;">⚒️ Великий Горн</div>
 
-  <!-- Цикл -->
-  <div id="furnace-cycle-card" style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:10px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+  <!-- Шапка горна -->
+  <div style="position:relative;overflow:hidden;background:linear-gradient(145deg,#1c0a00,#2a1000,#1a0800);border-radius:18px;padding:18px 16px 16px;margin-bottom:10px;border:1px solid rgba(255,120,0,0.3);box-shadow:0 0 40px rgba(255,60,0,0.1);">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#ff6a00,#ffb300,#ff6a00,transparent);"></div>
+    <div style="position:absolute;bottom:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,100,0,0.3),transparent);"></div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#3d1500,#1a0800);border:1px solid rgba(255,120,0,0.4);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 14px rgba(255,80,0,0.3);flex-shrink:0;">⚒️</div>
       <div>
-        <span style="font-size:13px;color:#aaa;">Сегодня Горн принимает:</span><br>
-        <span id="furnace-resource-label" style="font-size:17px;font-weight:700;color:#fff;"></span>
+        <div style="font-size:15px;font-weight:800;color:#ff8c00;text-shadow:0 0 10px rgba(255,140,0,0.5);letter-spacing:0.5px;">ВЕЛИКИЙ ГОРН</div>
+        <div style="font-size:10px;color:#7a5030;letter-spacing:0.5px;">суточный ритуал плавки</div>
       </div>
-      <div style="text-align:right;">
-        <span style="font-size:11px;color:#aaa;">Сброс через</span><br>
-        <span id="furnace-timer" style="font-size:15px;font-weight:700;color:#f5c77a;font-family:monospace;"></span>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:9px;color:#7a5030;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">сброс через</div>
+        <div id="furnace-timer" style="font-size:20px;font-weight:800;color:#ffd700;font-family:monospace;text-shadow:0 0 12px rgba(255,215,0,0.4);"></div>
       </div>
     </div>
-    <div style="font-size:12px;color:#7ecfff;margin-bottom:10px;">🎁 Бонус победителей: <span id="furnace-bonus-label"></span></div>
 
-    <!-- Призовой фонд -->
-    <div style="display:flex;justify-content:space-between;align-items:center;background:#12122a;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
-      <span style="font-size:12px;color:#aaa;">Призовой фонд (топ-10):</span>
-      <span id="furnace-prize-pool" style="font-size:14px;font-weight:700;color:#f5c77a;"></span>
+    <!-- Ресурс дня -->
+    <div style="background:rgba(255,100,0,0.08);border:1px solid rgba(255,100,0,0.2);border-radius:12px;padding:12px;margin-bottom:10px;text-align:center;">
+      <div style="font-size:10px;color:#7a5030;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">🔥 Горн принимает сегодня</div>
+      <div id="furnace-resource-label" style="font-size:20px;font-weight:800;color:#fff;text-shadow:0 0 10px rgba(255,140,0,0.4);"></div>
     </div>
 
-    <!-- Мой вклад -->
-    <div id="furnace-my-stats" style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:12px;color:#ccc;">
-      <span>Мой вклад: <b id="furnace-my-contribution" style="color:#fff;">0</b></span>
-      <span>Позиция: <b id="furnace-my-rank" style="color:#f5c77a;">—</b></span>
+    <!-- Две награды -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.18);border-radius:11px;padding:10px;text-align:center;">
+        <div style="font-size:16px;margin-bottom:3px;">💰</div>
+        <div style="font-size:9px;color:#7a5030;text-transform:uppercase;letter-spacing:0.8px;">ТОП-10 делят</div>
+        <div id="furnace-prize-pool" style="font-size:16px;font-weight:800;color:#ffd700;margin-top:3px;text-shadow:0 0 8px rgba(255,215,0,0.3);"></div>
+      </div>
+      <div style="background:rgba(127,207,255,0.06);border:1px solid rgba(127,207,255,0.15);border-radius:11px;padding:10px;text-align:center;">
+        <div style="font-size:16px;margin-bottom:3px;">✨</div>
+        <div style="font-size:9px;color:#7a5030;text-transform:uppercase;letter-spacing:0.8px;">ТОП-100 бонус</div>
+        <div id="furnace-bonus-label" style="font-size:11px;font-weight:700;color:#7ecfff;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- Мой статус -->
+    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+      <div style="text-align:center;">
+        <div style="font-size:9px;color:#7a5030;text-transform:uppercase;letter-spacing:0.5px;">Мой вклад</div>
+        <div style="font-size:16px;font-weight:800;color:#fff;margin-top:2px;" id="furnace-my-contribution">0</div>
+      </div>
+      <div style="width:1px;height:28px;background:rgba(255,255,255,0.08);"></div>
+      <div style="text-align:center;">
+        <div style="font-size:9px;color:#7a5030;text-transform:uppercase;letter-spacing:0.5px;">Моя позиция</div>
+        <div style="font-size:16px;font-weight:800;color:#f5c77a;margin-top:2px;" id="furnace-my-rank">—</div>
+      </div>
     </div>
 
     <!-- Депозит -->
     <div style="display:flex;gap:8px;">
       <input id="furnace-amount-input" type="number" min="1" placeholder="Количество"
-        style="flex:1;background:#12122a;border:1px solid #333;border-radius:8px;padding:8px 10px;color:#fff;font-size:14px;outline:none;" />
+        style="flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(255,120,0,0.25);border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;outline:none;" />
       <button id="furnace-contribute-btn" onclick="furnaceContribute()"
-        style="background:#f5c77a;color:#1a1208;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">
-        Вложить
+        style="background:linear-gradient(180deg,#ff8c00,#c45500);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(255,80,0,0.35);white-space:nowrap;">
+        🔥 Вложить
       </button>
     </div>
   </div>
 
-  <!-- Активный бонус (если есть) -->
-  <div id="furnace-active-bonus" style="display:none;background:#0d2a1a;border:1px solid #2a6a3a;border-radius:10px;padding:10px 14px;margin-bottom:10px;">
-    <span style="font-size:12px;color:#5dde8a;">✅ Активный бонус: </span>
-    <span id="furnace-active-bonus-label" style="font-size:13px;font-weight:700;color:#5dde8a;"></span>
-    <span id="furnace-active-bonus-timer" style="font-size:11px;color:#aaa;margin-left:6px;"></span>
+  <!-- Активный бонус -->
+  <div id="furnace-active-bonus" style="display:none;position:relative;overflow:hidden;background:linear-gradient(135deg,#071e10,#050f08);border:1px solid rgba(76,217,100,0.3);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:0 0 18px rgba(76,217,100,0.08);">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#4cd964,transparent);"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:22px;filter:drop-shadow(0 0 6px rgba(76,217,100,0.6));">⚡</div>
+      <div>
+        <div style="font-size:10px;color:#3a7a4a;text-transform:uppercase;letter-spacing:0.5px;">Активный бонус</div>
+        <div id="furnace-active-bonus-label" style="font-size:14px;font-weight:800;color:#4cd964;"></div>
+      </div>
+      <div id="furnace-active-bonus-timer" style="margin-left:auto;font-size:11px;color:#3a7a4a;text-align:right;"></div>
+    </div>
   </div>
 
-  <!-- Лидерборд -->
-  <div style="background:#1a1a2e;border-radius:12px;padding:12px;">
-    <div style="font-size:12px;color:#aaa;margin-bottom:8px;font-weight:600;">🏆 Топ-10 сегодня</div>
+  <!-- Таблица лидеров -->
+  <div style="position:relative;overflow:hidden;background:linear-gradient(180deg,#180a00,#100500);border:1px solid rgba(255,120,0,0.18);border-radius:16px;padding:14px;">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(255,140,0,0.4),transparent);"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#ff8c00;">🏆 Топ лидеров</div>
+      <div style="font-size:9px;color:#7a5030;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.15);border-radius:6px;padding:3px 8px;line-height:1.4;text-align:center;">💰 топ-10 DC<br>✨ топ-100 бонус</div>
+    </div>
     <div id="furnace-leaderboard"></div>
   </div>
+
 </div>
   </div>
   
@@ -5307,6 +5341,8 @@ const FURNACE_RESOURCE_LABELS = {
   gold_ingot: '🏅 Золотой слиток', diamond_ingot: '💠 Алмазный слиток'
 };
 
+const FURNACE_TOP10_SHARES = [0.30, 0.20, 0.13, 0.09, 0.07, 0.06, 0.05, 0.04, 0.03, 0.03];
+
 function renderFurnace(data) {
   if (!data?.cycle) return;
 
@@ -5322,18 +5358,35 @@ function renderFurnace(data) {
 
   // Лидерборд
   const lb = document.getElementById('furnace-leaderboard');
+  const prizePool = data.prize_pool || 0;
   if (!data.leaderboard?.length) {
-    lb.innerHTML = '<div style="color:#555;font-size:12px;text-align:center;padding:8px;">Пока никто не вкладывал</div>';
+    lb.innerHTML = `<div style="color:#5a3a20;font-size:12px;text-align:center;padding:18px;">
+      🔥 Горн ждёт первого кузнеца...
+    </div>`;
   } else {
-    const medals = ['🥇','🥈','🥉'];
-    lb.innerHTML = data.leaderboard.map((c, i) => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #222;">
-        <span style="font-size:13px;color:${i < 3 ? '#f5c77a' : '#ccc'};">
-          ${medals[i] || `${i+1}.`} ${String(c.user_id).slice(-6)}
-        </span>
-        <span style="font-size:13px;font-weight:600;color:#fff;">${Number(c.total).toLocaleString()}</span>
-      </div>
-    `).join('');
+    const medals  = ['🥇','🥈','🥉'];
+    const topColors = ['#ffd700','#c0c0c0','#cd7f32'];
+    lb.innerHTML = data.leaderboard.map((c, i) => {
+      const isTop3   = i < 3;
+      const dcReward = prizePool > 0 ? (prizePool * (FURNACE_TOP10_SHARES[i] || 0)).toFixed(2) : null;
+      const rankColor = isTop3 ? topColors[i] : '#6a5040';
+      const rowBg    = isTop3 ? `rgba(${i===0?'255,215,0':i===1?'192,192,192':'205,127,50'},0.05)` : 'transparent';
+      const border   = i < data.leaderboard.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : '';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-radius:8px;background:${rowBg};${border}">
+          <div style="width:22px;text-align:center;font-size:${isTop3?'15px':'12px'};color:${rankColor};font-weight:700;flex-shrink:0;">
+            ${medals[i] || i + 1}
+          </div>
+          <div style="flex:1;min-width:0;overflow:hidden;">
+            <div style="font-size:12px;font-weight:600;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.user_id}</div>
+            <div style="font-size:10px;color:#6a5040;margin-top:1px;">${Number(c.total).toLocaleString()} ед.</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            ${dcReward ? `<div style="font-size:12px;font-weight:800;color:#ffd700;">+${dcReward} DC</div>` : ''}
+            <div style="font-size:10px;color:#3a7a4a;margin-top:2px;">✨ бонус</div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   // Активный бонус
@@ -5347,14 +5400,14 @@ function renderFurnace(data) {
     bonusEl.style.display = 'none';
   }
 
-  // Таймер сброса
+  // Таймер
   if (furnaceTimerInterval) clearInterval(furnaceTimerInterval);
   furnaceTimerInterval = setInterval(() => {
     const rem = data.cycle.ends_at - Date.now();
     if (rem <= 0) {
       document.getElementById('furnace-timer').textContent = '00:00:00';
       clearInterval(furnaceTimerInterval);
-      loadFurnaceData(); // Обновляем — цикл сменился
+      loadFurnaceData();
       return;
     }
     const h = Math.floor(rem / 3600000);
