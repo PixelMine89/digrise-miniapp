@@ -3108,9 +3108,22 @@ if (isStarter && !isCollapsed && mine.resources_left > 0) {
 }
 
 async function checkActiveLicense(mineId) {
-  // Показываем Enter кнопку — реальная проверка на сервере при нажатии
-  // Лицензионные кнопки НЕ скрываем — пусть игрок видит варианты покупки
-  document.getElementById('mine-enter-btn').style.display = 'block';
+  const enterBtn = document.getElementById('mine-enter-btn');
+  const btns = document.getElementById('mine-license-btns');
+
+    const res = await fetch(`${API_URL}/mine/${mineId}/license?user_id=${currentUserId}`);
+    if (res.ok) {
+      // Лицензия есть — убираем кнопки покупки, показываем Войти
+      const data = await res.json();
+      const exp = new Date(data.expires_at).toLocaleTimeString();
+      btns.innerHTML = `<div style="color:#4cd964; font-size:12px; padding:6px 0;">
+        ✅ Лицензия активна до ${exp}
+      </div>`;
+      enterBtn.style.display = 'block';
+    } else {
+      // Лицензии нет — кнопки покупки уже есть, Войти скрыта
+      enterBtn.style.display = 'none';
+    }
 }
 
 function closeMineModal() {
