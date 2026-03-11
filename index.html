@@ -5610,7 +5610,7 @@ document.getElementById('daily-tasks-list').innerHTML = TASK_DEFS.map(td =>
   </div>` : '');
 
   // Сундук
-  const chestOpened = !!data.chest_opened;
+  const chestOpened = !!data.tasks.chest_opened;
   document.getElementById('daily-chest-section').style.display = (allDoneAlready && !chestOpened) ? 'block' : 'none';
   document.getElementById('daily-chest-done').style.display    = chestOpened ? 'block' : 'none';
 }
