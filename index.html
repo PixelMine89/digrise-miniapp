@@ -5638,7 +5638,7 @@ async function openChest() {
       copper_ingot:'🟠 Медный слиток', iron_ingot:'⚙️ Железный слиток',
       gold_ingot:'🌕 Золотой слиток', diamond_ingot:'💎 Алмазный слиток'
     };
-    alert(`🎁 Сундук открыт!\n\n+${data.amount} ${labels[data.resource] || data.resource}`);
+    alert(`🎁 Сундук открыт!\n\n+${data.loot.amount} ${labels[data.loot.resource] || data.loot.resource}`);
     await loadDaily();
     await loadPlayerDataOnly();
   } finally {
