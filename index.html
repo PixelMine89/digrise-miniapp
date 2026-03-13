@@ -2190,7 +2190,7 @@ function openTowerInfo(tower) {
     } else {
       incomeSection.style.display = 'none';
     }
-    await loadTowerControlSection(tower.id);
+    loadTowerControlSection(tower.id);
   } else {
     const progress = Math.round((tower.current / tower.required) * 100);
     content.innerHTML = `
