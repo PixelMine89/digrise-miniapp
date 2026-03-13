@@ -2189,6 +2189,7 @@ function openTowerInfo(tower) {
     } else {
       incomeSection.style.display = 'none';
     }
+    await loadTowerControlSection(tower.id);
   } else {
     const progress = Math.round((tower.current / tower.required) * 100);
     content.innerHTML = `
@@ -2202,6 +2203,87 @@ function openTowerInfo(tower) {
   }
 
   modal.style.display = "flex";
+}
+
+async function loadTowerControlSection(towerId) {
+  const res = await fetch(`${API_URL}/tower/control/${towerId}?user_id=${currentUserId}`);
+  if (!res.ok) return;
+  const data = await res.json();
+
+  const section = document.getElementById('tower-control-section');
+  if (!section) return;
+
+  // Время до сброса
+  const msLeft = data.resets_at - Date.now();
+  const hLeft  = Math.floor(msLeft / 3600000);
+  const mLeft  = Math.floor((msLeft % 3600000) / 60000);
+
+  // Топ
+  const topHtml = data.leaderboard.length
+    ? data.leaderboard.map((r, i) =>
+        `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;
+          ${String(r.user_id) === String(currentUserId) ? 'color:#f5c77a;font-weight:700;' : 'color:#ccc;'}">
+          <span>${i + 1}. #${r.user_id}</span>
+          <span>${r.amount} 🪨</span>
+        </div>`
+      ).join('')
+    : `<div style="color:#888;font-size:12px;">Никто ещё не вкладывал сегодня</div>`;
+
+  section.innerHTML = `
+    <div style="margin-top:12px;border-top:1px solid #333;padding-top:12px;">
+      <div style="font-weight:700;margin-bottom:6px;">⚔️ Борьба за контроль</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:6px;">
+        Контролёр: ${data.controller_id ? `<b style="color:#f5c77a;">#${data.controller_id}</b>` : '<span style="color:#888;">нет</span>'}
+        ${String(data.controller_id) === String(currentUserId) ? ' 👑 (вы)' : ''}
+      </div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px;">
+        Сброс через ${hLeft}ч ${mLeft}м · Побеждает кто вложит больше всех за сутки
+      </div>
+      <div style="background:#1a1a1a;border-radius:8px;padding:8px;margin-bottom:8px;">
+        ${topHtml}
+      </div>
+      ${data.my_amount > 0
+        ? `<div style="font-size:12px;color:#4cd964;margin-bottom:8px;">Вы вложили сегодня: ${data.my_amount} 🪨</div>`
+        : ''}
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input id="control-amount-input" type="number" min="1" placeholder="Камень"
+          style="flex:1;padding:8px;border-radius:8px;background:#222;color:#fff;border:1px solid #444;font-size:13px;" />
+        <button onclick="contributeControl(${towerId})"
+          style="padding:8px 14px;border-radius:8px;background:linear-gradient(180deg,#f5c77a,#c8962a);color:#111;font-weight:700;font-size:13px;">
+          Вложить
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function contributeControl(towerId) {
+  if (_actionLock) return;
+  const input = document.getElementById('control-amount-input');
+  const amount = parseInt(input?.value);
+  if (!amount || amount <= 0) { alert('Введите количество камня'); return; }
+
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/tower/control/contribute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, tower_id: towerId, amount })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_STONE: 'Недостаточно камня',
+        TOWER_NOT_COMPLETED: 'Башня ещё не построена'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    await loadPlayerDataOnly();
+    await loadTowerControlSection(towerId); // обновляем секцию
+  } finally {
+    hideActionLoader();
+  }
 }
 
 function closeTowerInfo() {
