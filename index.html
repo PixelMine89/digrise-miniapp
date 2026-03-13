@@ -3077,68 +3077,70 @@ async function openMineModal(mineId) {
   }
 
   // ─── ЛИЦЕНЗИЯ + КНОПКА ВОЙТИ ───
-  // Все решения принимаются здесь, в одном месте
   const licenseSection = document.getElementById('mine-license-section');
   const enterBtn       = document.getElementById('mine-enter-btn');
   const btns           = document.getElementById('mine-license-btns');
   licenseSection.style.display = 'none';
   enterBtn.style.display = 'none';
 
-  if (isStarter) {
-    // Стартовая шахта — вход всегда открыт
+  if (activeMiningSession) {
+    // ПРИОРИТЕТ 1: Есть активная сессия — всегда даём войти/забрать.
+    // Не важно: бросил ли владелец шахту, обвал, истекла ли лицензия.
+    // Сервер тоже пустит (проверяет сессию до всего остального).
+    const sessionDone = Date.now() >= activeMiningSession.ends_at;
+
+    if (!isOwner) {
+      // Показываем статус сессии в лицензионном блоке
+      licenseSection.style.display = 'block';
+      btns.innerHTML = `<div style="color:${sessionDone ? '#f5c77a' : '#4cd964'};font-size:12px;padding:6px 0;">
+        ${sessionDone
+          ? '⚠️ Добыча завершена! Забери ресурсы.'
+          : '⛏️ Идёт добыча, таймер внутри...'}
+      </div>`;
+    }
+
+    enterBtn.style.display = 'block';
+    enterBtn.innerText = sessionDone ? '▶ Забрать ресурсы' : '▶ Следить за добычей';
+
+  } else if (isStarter) {
+    // Стартовая шахта — вход без условий
     if (!isCollapsed && hasResources) {
       enterBtn.style.display = 'block';
       enterBtn.innerText = '▶ Войти (стартовая, -80% добычи)';
     }
 
   } else if (isOwner) {
-    // Владелец — войти если не обвал и есть ресурсы ИЛИ есть незавершённая сессия
-    if (!isCollapsed && (hasResources || activeMiningSession)) {
+    // Владелец без активной сессии
+    if (!isCollapsed && hasResources) {
       enterBtn.style.display = 'block';
-      enterBtn.innerText = activeMiningSession && !hasResources
-        ? '▶ Забрать ресурсы'
-        : '▶ Войти в шахту';
+      enterBtn.innerText = '▶ Войти в шахту';
     }
 
-  } else if (mine.owner_id && !isCollapsed) {
-    // Не-владелец, шахта занята, нет обвала
-    if (activeMiningSession) {
-      // Есть активная сессия — дать забрать независимо от лицензии
-      licenseSection.style.display = 'block';
-      btns.innerHTML = `<div style="color:#f5c77a;font-size:12px;padding:6px 0;">
-        ⚠️ ${activeLicense ? 'Лицензия активна.' : 'Лицензия истекла.'} Забери добытые ресурсы!
+  } else if (mine.owner_id && !isCollapsed && hasResources) {
+    // Чужая шахта, нет активной сессии — блок покупки лицензии
+    licenseSection.style.display = 'block';
+
+    if (activeLicense) {
+      const exp = new Date(activeLicense.expires_at).toLocaleTimeString();
+      btns.innerHTML = `<div style="color:#4cd964;font-size:12px;padding:6px 0;">
+        ✅ Лицензия активна до ${exp}
       </div>`;
       enterBtn.style.display = 'block';
-      enterBtn.innerText = '▶ Забрать ресурсы';
-
-    } else if (hasResources) {
-      // Нет сессии, есть ресурсы — показываем лицензионный блок
-      licenseSection.style.display = 'block';
-
-      if (activeLicense) {
-        // Лицензия активна — скрываем кнопки покупки, показываем статус и вход
-        const exp = new Date(activeLicense.expires_at).toLocaleTimeString();
-        btns.innerHTML = `<div style="color:#4cd964;font-size:12px;padding:6px 0;">
-          ✅ Лицензия активна до ${exp}
-        </div>`;
-        enterBtn.style.display = 'block';
-        enterBtn.innerText = '▶ Войти в шахту';
-      } else {
-        // Лицензии нет — кнопки покупки
-        btns.innerHTML = '';
-        const cfg = MINE_LICENSE_PRICE[mine.type];
-        [3, 6, 12, 24].forEach(h => {
-          const price = cfg[h];
-          const btn = document.createElement('button');
-          btn.style.cssText = 'font-size:12px;padding:8px;';
-          btn.innerHTML = `${h}ч<br><span style="color:#aaa;font-size:10px;">${price} DC</span>`;
-          btn.onclick = () => buyLicense(h);
-          btns.appendChild(btn);
-        });
-        // enterBtn остаётся скрытой
-      }
+      enterBtn.innerText = '▶ Войти в шахту';
+    } else {
+      btns.innerHTML = '';
+      const cfg = MINE_LICENSE_PRICE[mine.type];
+      [3, 6, 12, 24].forEach(h => {
+        const price = cfg[h];
+        const btn = document.createElement('button');
+        btn.style.cssText = 'font-size:12px;padding:8px;';
+        btn.innerHTML = `${h}ч<br><span style="color:#aaa;font-size:10px;">${price} DC</span>`;
+        btn.onclick = () => buyLicense(h);
+        btns.appendChild(btn);
+      });
+      // enterBtn остаётся скрытой — сначала купи лицензию
     }
-    // Если !hasResources && !activeMiningSession — ничего не показываем (пустая чужая шахта)
+    // Если !mine.owner_id && !activeMiningSession — чужая пустая/брошенная шахта, ничего не показываем
   }
 
   document.getElementById('mine-modal').style.display = 'flex';
@@ -3441,19 +3443,6 @@ function closeMiningModal() {
   document.getElementById('mining-modal').style.display = 'none';
   window._activeMine = null;
   window._activeSession = null;
-}
-
-async function fetchActiveReconstructSession(mineId) {
-  // Используем /mine/enter — если вернёт сессию типа reconstruction, берём её
-  // Вместо отдельного endpoint просто проверяем через enter
-  // Делаем отдельный запрос к /mine/:id и смотрим сессию
-  // На самом деле нам нужен endpoint для получения сессии — используем хак через enter
-  // Лучше добавить отдельный GET /mine/:id/session
-  try {
-    const res = await fetch(`${API_URL}/mine/${mineId}/session?user_id=${currentUserId}`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
 }
 
 async function abandonMine() {
