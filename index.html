@@ -1112,7 +1112,7 @@ button:disabled {
   </div>
   <!-- Модальное окно для информации о башне -->
 <div id="tower-info-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 9999;">
-  <div class="box" style="max-width: 340px; width: 90%; max-height: 70vh; display: flex; flex-direction: column;">
+  <div class="box" style="max-width: 340px; width: 90%; max-height: 80vh; display: flex; flex-direction: column;">
     <h3 id="tower-info-title" style="text-align:center;">Информация о башне</h3>
     <div id="tower-info-content" style="font-size: 12px; color: var(--muted); margin: 12px 0; line-height: 1.5;"></div>
     <input type="number" id="resource-amount" placeholder="Количество ресурсов" style="padding: 10px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 10px;"/>
@@ -2240,7 +2240,7 @@ async function loadTowerControlSection(towerId) {
       <div style="font-size:11px;color:#888;margin-bottom:8px;">
         Сброс через ${hLeft}ч ${mLeft}м · Побеждает кто вложит больше всех за сутки
       </div>
-      <div style="background:#1a1a1a;border-radius:8px;padding:8px;margin-bottom:8px;max-height:160px;overflow-y:auto;">
+      <div style="background:#1a1a1a;border-radius:8px;padding:8px;margin-bottom:8px;max-height:50px;overflow-y:auto;">
         ${topHtml}
       </div>
       ${data.my_amount > 0
