@@ -2150,6 +2150,7 @@ function openTowerInfo(tower) {
   const resourceAmountInput = document.getElementById("resource-amount");
   const contributeBtn = document.getElementById("contribute-resources-btn");
   const incomeSection = document.getElementById('tower-income-section');
+  const controlSection = document.getElementById('tower-control-section');
 
   title.innerText = `Башня #${tower.id}`;
 
@@ -2191,6 +2192,7 @@ function openTowerInfo(tower) {
       incomeSection.style.display = 'none';
     }
     loadTowerControlSection(tower.id);
+    controlSection.style.display = 'block';
   } else {
     const progress = Math.round((tower.current / tower.required) * 100);
     content.innerHTML = `
@@ -2201,6 +2203,7 @@ function openTowerInfo(tower) {
     contributeBtn.style.display = "block";
     resourceAmountInput.style.display = "block";
     incomeSection.style.display = 'none';
+    controlSection.style.display = 'none';
   }
 
   modal.style.display = "flex";
