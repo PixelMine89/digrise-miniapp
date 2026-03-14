@@ -843,11 +843,15 @@ button:disabled {
 
   <div class="box">
     <h4>📥 Пополнить TON</h4>
-    <input id="deposit-amount" type="number" placeholder="TON (минимум 1)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
+    <input id="deposit-amount" type="number" placeholder="TON (минимум 0.01)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="depositTon()">Пополнить</button>
   </div>
 
   <div class="box">
+    <div style="font-size:11px;color:#f5c77a;background:rgba(245,199,122,0.08);border:1px solid rgba(245,199,122,0.2);border-radius:8px;padding:8px;margin-bottom:10px;">
+    ⏳ <b>Временный лимит старта:</b> не более 0.5 TON в день на покупку DC.<br>
+    <span style="color:#888;">Это защита от дисбаланса пула в первые недели.</span>
+    </div>
     <h4>🔄 Купить DigCoin</h4>
     <input id="swap-ton" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <div id="preview-ton-dc" class="preview-box"></div>
@@ -1814,8 +1818,8 @@ async function checkDepositAmount() {
     return;
   }
 
-  if (amount <= 1) {
-    document.getElementById("deposit-amount").value = 1;
+  if (amount <= 0.01) {
+    document.getElementById("deposit-amount").value = 0.01;
   }
 }
 
@@ -1927,34 +1931,28 @@ async function depositTon() {
 }
 
 async function swapTonToDC() {
-
-  const amount = parseFloat(
-    document.getElementById("swap-ton").value
-  );
-
-  if (!amount || amount <= 0) {
-    alert("Введите сумму");
-    return;
-  }
+  const amount = parseFloat(document.getElementById("swap-ton").value);
+  if (!amount || amount <= 0) { alert("Введите сумму"); return; }
 
   const res = await fetch(`${API_URL}/swap`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: currentUserId,
-      direction: "TON_TO_DC",
-      amount
-    })
+    body: JSON.stringify({ user_id: currentUserId, direction: "TON_TO_DC", amount })
   });
-
   const data = await res.json();
 
   if (data.error) {
-    alert(data.error);
+    if (data.error.startsWith("DAILY_LIMIT_EXCEEDED")) {
+      const remaining = data.error.split(":")[1];
+      alert(`⏳ Дневной лимит покупки почти исчерпан!\nОсталось доступно сегодня: ${remaining} TON.\nЛимит обновится в 00:00 UTC.`);
+    } else {
+      const msgs = { NOT_ENOUGH_TON: "Недостаточно TON на балансе" };
+      alert(msgs[data.error] || data.error);
+    }
     return;
   }
 
-  alert("Успешно!");
+  alert("✅ Успешно!");
   loadPlayer();
 }
 
@@ -1986,7 +1984,7 @@ async function swapDCToTon() {
     return;
   }
 
-  alert("Успешно!");
+  alert("✅ Успешно!");
   loadPlayer();
 }
 
