@@ -1878,60 +1878,60 @@ function renderChannelTask(isDone) {
 }
 
 async function depositTon() {
-
-  const amount = parseFloat(
-    document.getElementById("deposit-amount").value
-  );
-
-  if (!amount || amount <= 0) {
-    alert("Введите сумму");
-    return;
-  }
-
-  if (amount < 0.01) {
-    alert("Минимальная сумма пополнения 0.01 TON");
-    return;
-  }
+  const amount = parseFloat(document.getElementById("deposit-amount").value);
+  if (!amount || amount < 0.01) { alert("Введите сумму (минимум 0.01 TON)"); return; }
 
   if (!tonConnectUI.connected) {
     await tonConnectUI.connectWallet();
   }
 
   const amountNano = String(Math.floor(amount * 1_000_000_000));
-
-  const payload = {
-    user_id: currentUserId
-  };
+  const payload = { user_id: currentUserId };
 
   const transaction = {
     validUntil: Math.floor(Date.now() / 1000) + 600,
-    messages: [
-      {
-        address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn",
-        amount: amountNano,
-        payload: btoa(JSON.stringify(payload))
-      }
-    ]
+    messages: [{
+      address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn",
+      amount: amountNano,
+      payload: btoa(JSON.stringify(payload))
+    }]
   };
 
   try {
-
     const result = await tonConnectUI.sendTransaction(transaction);
 
-    await fetch(`${API_URL}/ton/verify`, {
+    // TON Connect возвращает { boc }, хэш извлекаем из boc
+    const bocBytes = atob(result.boc);
+    const hashBytes = new Uint8Array(32);
+    // Берём последние 32 байта BOC как идентификатор транзакции
+    for (let i = 0; i < 32; i++) {
+      hashBytes[i] = bocBytes.charCodeAt(bocBytes.length - 32 + i);
+    }
+    const txHash = Array.from(hashBytes).map(b => b.toString(16).padStart(2,'0')).join('');
+
+    const res = await fetch(`${API_URL}/ton/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        txHash: result.transactionHash,
-        user_id: currentUserId
-      })
+      body: JSON.stringify({ txHash, user_id: currentUserId, boc: result.boc })
     });
-
-    alert("TON зачислены!");
+    const data = await res.json();
+    if (data.error) {
+      if (data.error === "ALREADY_PROCESSED") {
+        alert("✅ TON уже зачислены!");
+      } else {
+        alert("Ошибка верификации: " + data.error);
+      }
+      return;
+    }
+    alert("✅ TON зачислены!");
     loadPlayer();
-
   } catch (e) {
-    alert("Ошибка платежа");
+    console.error("Deposit error:", e);
+    if (e.message?.includes("User rejects")) {
+      alert("Вы отменили транзакцию");
+    } else {
+      alert("Ошибка платежа: " + (e.message || e));
+    }
   }
 }
 
