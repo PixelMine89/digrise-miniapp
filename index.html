@@ -845,17 +845,12 @@ button:disabled {
     <h4>📥 Пополнить TON</h4>
     <input id="deposit-amount" type="number" placeholder="TON (минимум 0.01)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="depositTon()">Пополнить</button>
-    <!-- Статус депозита — показывается после отправки -->
-  <div id="deposit-status" style="display:none; margin-top:12px; padding:12px;
-    border-radius:10px; background:rgba(245,199,122,0.08); border:1px solid rgba(245,199,122,0.2);">
-    <div id="deposit-status-text" style="font-size:13px; color:#f5c77a; margin-bottom:8px;"></div>
-    <div id="deposit-status-sub" style="font-size:11px; color:#888;"></div>
-    <button id="deposit-check-btn" onclick="checkDeposit()" style="display:none;
-      margin-top:10px; padding:8px 16px; font-size:12px; background:#f5c77a; color:#111;
-      border:none; border-radius:8px; font-weight:700;">
-      🔄 Проверить зачисление
-    </button>
-  </div>
+    <!-- Статус активного депозита — показывается если есть ожидающий -->
+    <div id="deposit-status" style="display:none; margin-bottom:12px; padding:12px;
+      border-radius:10px; background:rgba(245,199,122,0.08); border:1px solid rgba(245,199,122,0.2);">
+      <div id="deposit-status-text" style="font-size:13px; color:#f5c77a;"></div>
+      <div id="deposit-status-sub" style="font-size:11px; color:#888; margin-top:4px;"></div>
+    </div>
   </div>
 
   <div class="box">
@@ -1590,6 +1585,7 @@ async function loadPlayer() {
   
   renderPlayer(player);
   loadPool();
+  await initDepositStatus();
 
   playerInterval = setInterval(loadPlayerDataOnly, 2000);
 
@@ -1888,129 +1884,88 @@ function renderChannelTask(isDone) {
   }
 }
 
-// Хранит данные последней транзакции для ручной проверки
-let _lastDepositData = null;
 let _depositPollTimer = null;
 
-function showDepositStatus(text, sub, showCheckBtn) {
+function showDepositStatus(text, sub) {
   const block = document.getElementById('deposit-status');
+  if (!text) { block.style.display = 'none'; return; }
   block.style.display = 'block';
   document.getElementById('deposit-status-text').innerText = text;
   document.getElementById('deposit-status-sub').innerText = sub || '';
-  document.getElementById('deposit-check-btn').style.display = showCheckBtn ? 'block' : 'none';
+}
+
+async function checkDepositStatus() {
+  try {
+    const res = await fetch(`${API_URL}/ton/deposit/status?user_id=${currentUserId}`);
+    const data = await res.json();
+    if (data.status === 'waiting') {
+      showDepositStatus('⏳ Ожидаем зачисления...', 'Обычно занимает 15-60 секунд');
+      return false;
+    }
+    if (data.status === 'completed') {
+      showDepositStatus(`✅ Зачислено +${data.credited_ton.toFixed(4)} TON!`, '');
+      await loadPlayerDataOnly();
+      setTimeout(() => showDepositStatus(''), 5000);
+      if (_depositPollTimer) { clearInterval(_depositPollTimer); _depositPollTimer = null; }
+      return true;
+    }
+    showDepositStatus('');
+    if (_depositPollTimer) { clearInterval(_depositPollTimer); _depositPollTimer = null; }
+    return true;
+  } catch (e) { return false; }
 }
 
 async function depositTon() {
   const amount = parseFloat(document.getElementById("deposit-amount").value);
-  if (!amount || amount < 0.01) {
-    showDepositStatus('⚠️ Введите сумму (минимум 0.01 TON)', '', false);
-    return;
-  }
+  if (!amount || amount < 0.01) { showDepositStatus('⚠️ Минимум 0.01 TON', ''); return; }
 
-  if (!tonConnectUI.connected) {
-    await tonConnectUI.connectWallet();
-  }
-
+  if (!tonConnectUI.connected) await tonConnectUI.connectWallet();
   const senderAddress = tonConnectUI.account?.address;
-  if (!senderAddress) {
-    showDepositStatus('⚠️ Кошелёк не подключён', '', false);
-    return;
-  }
+  if (!senderAddress) { showDepositStatus('⚠️ Кошелёк не подключён', ''); return; }
 
-  const amountNano = String(Math.floor(amount * 1_000_000_000));
+  const amountNano = Math.floor(amount * 1_000_000_000);
 
-  const transaction = {
-    validUntil: Math.floor(Date.now() / 1000) + 600,
-    messages: [{
-      address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn",
-      amount: amountNano
-    }]
-  };
+  // Сначала сохраняем на сервере — потом отправляем транзакцию
+  try {
+    await fetch(`${API_URL}/ton/deposit/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, sender_address: senderAddress, expected_nano: amountNano })
+    });
+  } catch (e) { showDepositStatus('❌ Ошибка сервера', ''); return; }
 
   try {
-    await tonConnectUI.sendTransaction(transaction);
+    await tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [{ address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn", amount: String(amountNano) }]
+    });
   } catch (e) {
     if (e.message?.includes("User rejects") || e.message?.includes("declined")) {
-      showDepositStatus('❌ Вы отменили транзакцию', '', false);
+      showDepositStatus('❌ Вы отменили транзакцию', '');
     } else {
-      showDepositStatus('❌ Ошибка отправки', e.message || '', false);
+      showDepositStatus('❌ Ошибка: ' + (e.message || e), '');
     }
     return;
   }
 
-  // Транзакция отправлена — сохраняем данные и начинаем polling
-  _lastDepositData = { user_id: currentUserId, sender_address: senderAddress, expected_nano: amountNano };
-  showDepositStatus('⏳ Ожидаем подтверждения блокчейна...', 'Обычно занимает 10-30 секунд', false);
+  showDepositStatus('⏳ Ожидаем зачисления...', 'Обычно занимает 15-60 секунд');
 
-  // Автоматически проверяем каждые 5 секунд, максимум 2 минуты
-  let attempts = 0;
+  // Polling каждые 5 секунд
   if (_depositPollTimer) clearInterval(_depositPollTimer);
-  _depositPollTimer = setInterval(async () => {
-    attempts++;
-    const done = await tryVerifyDeposit(false);
-    if (done || attempts >= 24) { // 24 × 5сек = 2 минуты
-      clearInterval(_depositPollTimer);
-      if (!done) {
-        showDepositStatus(
-          '⚠️ Транзакция пока не найдена',
-          'Блокчейн может задержаться. Нажмите кнопку для повторной проверки.',
-          true
-        );
-      }
-    }
-  }, 5000);
+  _depositPollTimer = setInterval(checkDepositStatus, 5000);
 }
 
-async function checkDeposit() {
-  if (!_lastDepositData) return;
-  showDepositStatus('🔄 Проверяем...', '', false);
-  const done = await tryVerifyDeposit(true);
-  if (!done) {
-    showDepositStatus(
-      '⚠️ Транзакция всё ещё не найдена',
-      'Подождите ещё немного и попробуйте снова.',
-      true
-    );
+// При загрузке приложения — восстанавливаем статус если был активный депозит
+// Добавить вызов в свою функцию инициализации (там где loadPlayer и т.д.)
+async function initDepositStatus() {
+  const res = await fetch(`${API_URL}/ton/deposit/status?user_id=${currentUserId}`).catch(() => null);
+  if (!res) return;
+  const data = await res.json();
+  if (data.status === 'waiting') {
+    showDepositStatus('⏳ Ожидаем зачисления...', 'Транзакция в обработке');
+    if (_depositPollTimer) clearInterval(_depositPollTimer);
+    _depositPollTimer = setInterval(checkDepositStatus, 5000);
   }
-}
-
-async function tryVerifyDeposit(showError) {
-  try {
-    const res = await fetch(`${API_URL}/ton/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(_lastDepositData)
-    });
-    const data = await res.json();
-
-    if (data.error === "ALREADY_PROCESSED") {
-      showDepositStatus('✅ TON уже зачислены!', '', false);
-      _lastDepositData = null;
-      await loadPlayerDataOnly();
-      return true;
-    }
-    if (data.error === "TX_NOT_FOUND") {
-      return false; // продолжаем ждать
-    }
-    if (data.error) {
-      if (showError) showDepositStatus('❌ Ошибка: ' + data.error, '', true);
-      return false;
-    }
-    if (data.success) {
-      showDepositStatus(
-        `✅ Зачислено +${data.credited.toFixed(4)} TON!`,
-        'Баланс обновлён.',
-        false
-      );
-      _lastDepositData = null;
-      await loadPlayerDataOnly();
-      return true;
-    }
-  } catch (e) {
-    console.error('[verify]', e);
-    return false;
-  }
-  return false;
 }
 
 async function swapTonToDC() {
