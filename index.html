@@ -1886,47 +1886,44 @@ async function depositTon() {
   }
 
   const amountNano = String(Math.floor(amount * 1_000_000_000));
-  const payload = { user_id: currentUserId };
+  // Адрес кошелька отправителя — для идентификации на сервере
+  const senderAddress = tonConnectUI.account?.address;
+  if (!senderAddress) { alert("Кошелёк не подключён"); return; }
 
   const transaction = {
     validUntil: Math.floor(Date.now() / 1000) + 600,
     messages: [{
       address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn",
-      amount: amountNano,
-      payload: btoa(JSON.stringify(payload))
+      amount: amountNano
+      // payload убран — TON Connect не принимает произвольный JSON
     }]
   };
 
   try {
-    // Отправляем транзакцию — получаем boc
     const result = await tonConnectUI.sendTransaction(transaction);
+    alert("⏳ Транзакция отправлена! Ждём подтверждения блокчейна...");
 
-    alert("⏳ Транзакция отправлена! Ждём подтверждения...");
-
-    // Отправляем boc на сервер — он сам найдёт транзакцию
     const res = await fetch(`${API_URL}/ton/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: currentUserId,
-        boc: result.boc,
-        expected_amount: amountNano  // для доп. проверки на сервере
+        sender_address: senderAddress,
+        expected_nano: amountNano
       })
     });
 
     const data = await res.json();
-
     if (data.error) {
       if (data.error === "ALREADY_PROCESSED") {
         alert("✅ TON уже зачислены!");
       } else if (data.error === "TX_NOT_FOUND") {
-        alert("⚠️ Транзакция ещё не подтверждена. Подождите минуту и зайдите снова — TON зачислятся автоматически.");
+        alert("⚠️ Транзакция ещё не подтверждена. Попробуйте через минуту.");
       } else {
-        alert("Ошибка верификации: " + data.error);
+        alert("Ошибка: " + data.error);
       }
       return;
     }
-
     alert(`✅ TON зачислены! +${data.credited.toFixed(4)} TON`);
     loadPlayer();
 
