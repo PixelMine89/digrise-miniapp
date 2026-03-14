@@ -1818,7 +1818,7 @@ async function checkDepositAmount() {
     return;
   }
 
-  if (amount <= 0.01) {
+  if (amount < 0.00) {
     document.getElementById("deposit-amount").value = 0.01;
   }
 }
@@ -1885,6 +1885,11 @@ async function depositTon() {
 
   if (!amount || amount <= 0) {
     alert("Введите сумму");
+    return;
+  }
+
+  if (amount < 0.01) {
+    alert("Минимальная сумма пополнения 0.01 TON");
     return;
   }
 
