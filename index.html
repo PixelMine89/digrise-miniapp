@@ -845,17 +845,28 @@ button:disabled {
     <h4>📥 Пополнить TON</h4>
     <input id="deposit-amount" type="number" placeholder="TON (минимум 0.01)" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <button onclick="depositTon()">Пополнить</button>
+    <!-- Статус депозита — показывается после отправки -->
+  <div id="deposit-status" style="display:none; margin-top:12px; padding:12px;
+    border-radius:10px; background:rgba(245,199,122,0.08); border:1px solid rgba(245,199,122,0.2);">
+    <div id="deposit-status-text" style="font-size:13px; color:#f5c77a; margin-bottom:8px;"></div>
+    <div id="deposit-status-sub" style="font-size:11px; color:#888;"></div>
+    <button id="deposit-check-btn" onclick="checkDeposit()" style="display:none;
+      margin-top:10px; padding:8px 16px; font-size:12px; background:#f5c77a; color:#111;
+      border:none; border-radius:8px; font-weight:700;">
+      🔄 Проверить зачисление
+    </button>
+  </div>
   </div>
 
   <div class="box">
-    <div style="font-size:11px;color:#f5c77a;background:rgba(245,199,122,0.08);border:1px solid rgba(245,199,122,0.2);border-radius:8px;padding:8px;margin-bottom:10px;">
-    ⏳ <b>Временный лимит старта:</b> не более 0.5 TON в день на покупку DC.<br>
-    <span style="color:#888;">Это защита от дисбаланса пула в первые недели.</span>
-    </div>
     <h4>🔄 Купить DigCoin</h4>
     <input id="swap-ton" type="number" placeholder="TON" style="width:100%; padding:10px; border-radius:10px; border:none; margin-bottom:10px;">
     <div id="preview-ton-dc" class="preview-box"></div>
     <div class="fee-highlight">Комиссия 5% удерживается в TON</div>
+    <div style="font-size:11px;color:#f5c77a;background:rgba(245,199,122,0.08);border:1px solid rgba(245,199,122,0.2);border-radius:8px;padding:8px;margin-bottom:10px;">
+    ⏳ <b>Временный лимит старта:</b> не более 0.5 TON в день на покупку DC.<br>
+    <span style="color:#888;">Это защита от дисбаланса пула в первые недели.</span>
+    </div>
     <button onclick="swapTonToDC()">Обменять TON → DigCoin</button>
   </div>
 
@@ -1877,64 +1888,129 @@ function renderChannelTask(isDone) {
   }
 }
 
+// Хранит данные последней транзакции для ручной проверки
+let _lastDepositData = null;
+let _depositPollTimer = null;
+
+function showDepositStatus(text, sub, showCheckBtn) {
+  const block = document.getElementById('deposit-status');
+  block.style.display = 'block';
+  document.getElementById('deposit-status-text').innerText = text;
+  document.getElementById('deposit-status-sub').innerText = sub || '';
+  document.getElementById('deposit-check-btn').style.display = showCheckBtn ? 'block' : 'none';
+}
+
 async function depositTon() {
   const amount = parseFloat(document.getElementById("deposit-amount").value);
-  if (!amount || amount < 0.01) { alert("Введите сумму (минимум 0.01 TON)"); return; }
+  if (!amount || amount < 0.01) {
+    showDepositStatus('⚠️ Введите сумму (минимум 0.01 TON)', '', false);
+    return;
+  }
 
   if (!tonConnectUI.connected) {
     await tonConnectUI.connectWallet();
   }
 
-  const amountNano = String(Math.floor(amount * 1_000_000_000));
-  // Адрес кошелька отправителя — для идентификации на сервере
   const senderAddress = tonConnectUI.account?.address;
-  if (!senderAddress) { alert("Кошелёк не подключён"); return; }
+  if (!senderAddress) {
+    showDepositStatus('⚠️ Кошелёк не подключён', '', false);
+    return;
+  }
+
+  const amountNano = String(Math.floor(amount * 1_000_000_000));
 
   const transaction = {
     validUntil: Math.floor(Date.now() / 1000) + 600,
     messages: [{
       address: "UQBkxJxTtskm_Co7jlIw7LMOkCNSC33KNo2EuqIlDrXiuhNn",
       amount: amountNano
-      // payload убран — TON Connect не принимает произвольный JSON
     }]
   };
 
   try {
-    const result = await tonConnectUI.sendTransaction(transaction);
-    alert("⏳ Транзакция отправлена! Ждём подтверждения блокчейна...");
+    await tonConnectUI.sendTransaction(transaction);
+  } catch (e) {
+    if (e.message?.includes("User rejects") || e.message?.includes("declined")) {
+      showDepositStatus('❌ Вы отменили транзакцию', '', false);
+    } else {
+      showDepositStatus('❌ Ошибка отправки', e.message || '', false);
+    }
+    return;
+  }
 
+  // Транзакция отправлена — сохраняем данные и начинаем polling
+  _lastDepositData = { user_id: currentUserId, sender_address: senderAddress, expected_nano: amountNano };
+  showDepositStatus('⏳ Ожидаем подтверждения блокчейна...', 'Обычно занимает 10-30 секунд', false);
+
+  // Автоматически проверяем каждые 5 секунд, максимум 2 минуты
+  let attempts = 0;
+  if (_depositPollTimer) clearInterval(_depositPollTimer);
+  _depositPollTimer = setInterval(async () => {
+    attempts++;
+    const done = await tryVerifyDeposit(false);
+    if (done || attempts >= 24) { // 24 × 5сек = 2 минуты
+      clearInterval(_depositPollTimer);
+      if (!done) {
+        showDepositStatus(
+          '⚠️ Транзакция пока не найдена',
+          'Блокчейн может задержаться. Нажмите кнопку для повторной проверки.',
+          true
+        );
+      }
+    }
+  }, 5000);
+}
+
+async function checkDeposit() {
+  if (!_lastDepositData) return;
+  showDepositStatus('🔄 Проверяем...', '', false);
+  const done = await tryVerifyDeposit(true);
+  if (!done) {
+    showDepositStatus(
+      '⚠️ Транзакция всё ещё не найдена',
+      'Подождите ещё немного и попробуйте снова.',
+      true
+    );
+  }
+}
+
+async function tryVerifyDeposit(showError) {
+  try {
     const res = await fetch(`${API_URL}/ton/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: currentUserId,
-        sender_address: senderAddress,
-        expected_nano: amountNano
-      })
+      body: JSON.stringify(_lastDepositData)
     });
-
     const data = await res.json();
-    if (data.error) {
-      if (data.error === "ALREADY_PROCESSED") {
-        alert("✅ TON уже зачислены!");
-      } else if (data.error === "TX_NOT_FOUND") {
-        alert("⚠️ Транзакция ещё не подтверждена. Попробуйте через минуту.");
-      } else {
-        alert("Ошибка: " + data.error);
-      }
-      return;
-    }
-    alert(`✅ TON зачислены! +${data.credited.toFixed(4)} TON`);
-    loadPlayer();
 
-  } catch (e) {
-    console.error("Deposit error:", e);
-    if (e.message?.includes("User rejects") || e.message?.includes("declined")) {
-      alert("Вы отменили транзакцию");
-    } else {
-      alert("Ошибка платежа: " + (e.message || e));
+    if (data.error === "ALREADY_PROCESSED") {
+      showDepositStatus('✅ TON уже зачислены!', '', false);
+      _lastDepositData = null;
+      await loadPlayerDataOnly();
+      return true;
     }
+    if (data.error === "TX_NOT_FOUND") {
+      return false; // продолжаем ждать
+    }
+    if (data.error) {
+      if (showError) showDepositStatus('❌ Ошибка: ' + data.error, '', true);
+      return false;
+    }
+    if (data.success) {
+      showDepositStatus(
+        `✅ Зачислено +${data.credited.toFixed(4)} TON!`,
+        'Баланс обновлён.',
+        false
+      );
+      _lastDepositData = null;
+      await loadPlayerDataOnly();
+      return true;
+    }
+  } catch (e) {
+    console.error('[verify]', e);
+    return false;
   }
+  return false;
 }
 
 async function swapTonToDC() {
