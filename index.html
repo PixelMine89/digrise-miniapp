@@ -1751,7 +1751,7 @@ async function loadPool() {
     data.ton.toFixed(2);
 
   document.getElementById("pool-dc").innerText =
-    data.digcoin.toFixed(0);
+    data.digcoin.toFixed(2);
 
   document.getElementById("pool-price").innerText =
     data.price.toFixed(8);
@@ -1864,7 +1864,7 @@ if (tg.initDataUnsafe?.user?.photo_url) {
   
   // DigCoin
   document.getElementById("dig-coin").innerText =
-  player.digCoin;
+  player.digCoin?.toFixed(4);
   
   // Virtual Ton
   document.getElementById("virtual-ton").innerText =
