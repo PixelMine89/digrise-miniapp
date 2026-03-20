@@ -800,6 +800,22 @@ button:disabled {
   <p class="label">Подпишитесь и получите 🪨 камень</p>
   <div id="partner-tasks-list" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;"></div>
 </div>
+    <!-- ПРОМОКОД -->
+<div class="box" id="promo-box">
+  <b>🎁 Промокод</b>
+  <p class="label">Введи промокод и получи награду. Каждый код можно использовать только один раз.</p>
+  <div style="display:flex; gap:8px; margin-top:8px;">
+    <input id="promo-input" type="text" placeholder="Введи промокод" maxlength="30"
+      style="flex:1; padding:10px 12px; border-radius:10px; background:var(--panel-soft);
+        border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:14px; text-transform:uppercase;"
+      oninput="this.value=this.value.toUpperCase()"
+    />
+    <button onclick="usePromoCode()" style="padding:10px 16px; font-size:13px; border-radius:10px; flex-shrink:0;">
+      Применить
+    </button>
+  </div>
+  <div id="promo-result" style="display:none; margin-top:8px; padding:10px 12px; border-radius:10px; font-size:13px;"></div>
+</div>
   </div>
 
 <!-- ===== EXCHANGE (СВАП) ===== -->
@@ -5819,6 +5835,67 @@ async function openChest() {
     alert(`🎁 Сундук открыт!\n\n+${data.loot.amount} ${labels[data.loot.resource] || data.loot.resource}`);
     await loadDaily();
     await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function usePromoCode() {
+  const input = document.getElementById('promo-input');
+  const resultEl = document.getElementById('promo-result');
+  const code = input.value.trim();
+
+  if (!code) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'rgba(255,107,107,0.1)';
+    resultEl.style.border = '1px solid rgba(255,107,107,0.3)';
+    resultEl.style.color = '#ff6b6b';
+    resultEl.innerText = '⚠️ Введи промокод';
+    return;
+  }
+
+  if (_actionLock) return;
+  showActionLoader();
+
+  try {
+    const res = await fetch(`${API_URL}/promo/use`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUserId, code })
+    });
+    const data = await res.json();
+
+    resultEl.style.display = 'block';
+
+    if (data.error) {
+      const msgs = {
+        PROMO_NOT_FOUND: '❌ Промокод не найден',
+        ALREADY_USED:    '✅ Ты уже использовал этот промокод',
+        PROMO_EXHAUSTED: '❌ Промокод исчерпан',
+      };
+      resultEl.style.background = 'rgba(255,107,107,0.1)';
+      resultEl.style.border = '1px solid rgba(255,107,107,0.3)';
+      resultEl.style.color = '#ff6b6b';
+      resultEl.innerText = msgs[data.error] || data.error;
+      return;
+    }
+
+    const RESOURCE_NAMES = {
+      stone: '🪨 Камень', coal: '⚫ Уголь', copper: '🟠 Медь',
+      iron: '⚙️ Железо', gold: '🌕 Золото', diamond: '💎 Алмаз',
+      copper_ingot: '🟠 Медный слиток', iron_ingot: '⚙️ Железный слиток',
+      gold_ingot: '🌕 Золотой слиток', diamond_ingot: '💎 Алмазный слиток'
+    };
+    const rewardLabel = `${data.reward.amount} × ${RESOURCE_NAMES[data.reward.resource] || data.reward.resource}`;
+
+    resultEl.style.background = 'rgba(76,217,100,0.1)';
+    resultEl.style.border = '1px solid rgba(76,217,100,0.3)';
+    resultEl.style.color = '#4cd964';
+    resultEl.innerText = `🎁 Получено: ${rewardLabel}`;
+
+    input.value = '';
+    await loadPlayerDataOnly();
+
   } finally {
     hideActionLoader();
   }
