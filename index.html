@@ -4189,7 +4189,9 @@ async function openCompanyModal(companyId) {
     workerStatusEl.style.display = 'block';
     workerStatusEl.innerHTML = `
       👷 Вы работник &nbsp;|&nbsp; XP: <b>${w.xp}</b><br>
-      Лицензия: <span style="color:${expired ? '#ff6b6b' : '#4cd964'}">${expired ? '❌ Истекла' : `✅ до ${expDate}`}</span>`;
+      Лицензия: <span style="color:${expired ? '#ff6b6b' : '#4cd964'}">${expired ? '❌ Истекла' : `✅ до ${expDate}`}</span>
+      ${!isLeader ? `<br><br>
+      <button onclick="leaveCompany(${company.id})" style="padding:6px 14px; font-size:12px; background:linear-gradient(180deg,#ff6b6b,#cc3333); color:#fff; border-radius:8px;">🚪 Покинуть компанию</button>` : ''}`;
   } else {
     workerStatusEl.style.display = 'none';
   }
@@ -4498,6 +4500,30 @@ async function kickWorker(targetUserId) {
       await loadCraft();
       await openCompanyModal(compId);
     }
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function leaveCompany(companyId) {
+  if (_actionLock) return;
+  if (!confirm('Покинуть компанию? Активный заказ будет отменён с возвратом клиенту.')) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/craft/worker/kick`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: currentUserId,
+        target_user_id: currentUserId,
+        company_id: companyId
+      })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    alert('✅ Вы покинули компанию');
+    closeCompanyModal();
+    await loadCraft();
   } finally {
     hideActionLoader();
   }
