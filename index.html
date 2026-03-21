@@ -4510,14 +4510,10 @@ async function leaveCompany(companyId) {
   if (!confirm('Покинуть компанию? Активный заказ будет отменён с возвратом клиенту.')) return;
   showActionLoader();
   try {
-    const res = await fetch(`${API_URL}/craft/worker/kick`, {
+    const res = await fetch(`${API_URL}/craft/worker/leave`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: currentUserId,
-        target_user_id: currentUserId,
-        company_id: companyId
-      })
+      body: JSON.stringify({ user_id: currentUserId, company_id: companyId })
     });
     const data = await res.json();
     if (data.error) { alert(data.error); return; }
