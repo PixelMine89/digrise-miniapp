@@ -1538,17 +1538,22 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 const API_URL = "https://digrise.ru";
-/*
-const _origFetch = window.fetch;
-window.fetch = function(url, options = {}) {
-  if (typeof url === 'string' && url.startsWith(API_URL)) {
-    options.headers = {
-      ...(options.headers || {}),
-      'x-telegram-init-data': tg.initData || ''
+
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(url, options) {
+  // Только для наших запросов И только если initData доступен
+  if (typeof url === 'string' && url.startsWith(API_URL) && tg.initData) {
+    // Создаём НОВЫЙ объект, не мутируем оригинальный
+    const newOptions = options ? { ...options } : {};
+    newOptions.headers = {
+      ...(newOptions.headers || {}),
+      'x-telegram-init-data': tg.initData
     };
+    return _origFetch(url, newOptions);
   }
-  return _origFetch(url, options);
-};*/
+  // Всё остальное — без изменений
+  return options ? _origFetch(url, options) : _origFetch(url);
+};
 
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
   manifestUrl: "https://digrise-miniapp.vercel.app/manifest.json",
