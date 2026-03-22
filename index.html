@@ -1539,6 +1539,17 @@ tg.ready();
 
 const API_URL = "https://digrise.ru";
 
+const _origFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+  if (typeof url === 'string' && url.startsWith(API_URL)) {
+    options.headers = {
+      ...(options.headers || {}),
+      'x-telegram-init-data': tg.initData || ''
+    };
+  }
+  return _origFetch(url, options);
+};
+
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
   manifestUrl: "https://digrise-miniapp.vercel.app/manifest.json",
   buttonRootId: "ton-connect"
