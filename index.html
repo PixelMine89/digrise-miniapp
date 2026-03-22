@@ -1538,7 +1538,7 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 
 const API_URL = "https://digrise.ru";
-
+/*
 const _origFetch = window.fetch.bind(window);
 window.fetch = function(url, options) {
   // Только для наших запросов И только если initData доступен
@@ -1553,7 +1553,7 @@ window.fetch = function(url, options) {
   }
   // Всё остальное — без изменений
   return options ? _origFetch(url, options) : _origFetch(url);
-};
+};*/
 
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
   manifestUrl: "https://digrise-miniapp.vercel.app/manifest.json",
