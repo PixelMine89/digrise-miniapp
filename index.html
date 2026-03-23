@@ -5088,7 +5088,8 @@ function renderMarketListings() {
       try {
         const d = JSON.parse(l.item_data);
         const def = d.is_defective ? ` <span style="color:#ff6b6b;">[Брак]</span>` : '';
-        detail = `<div style="font-size:11px; color:var(--muted);">⚡ +${d.bonus_mining}% добычи &nbsp;|&nbsp; 🛡 ${d.durability}/${d.max_durability}${def}</div>`;
+        const timeStr = d.bonus_time_minutes > 0 ? ` &nbsp;|&nbsp; ⏱ +${d.bonus_time_minutes}м` : '';
+        detail = `<div style="font-size:11px; color:var(--muted);">⚡ +${d.bonus_mining}% добычи${timeStr} &nbsp;|&nbsp; 🛡 ${d.durability}/${d.max_durability}${def}</div>`;
       } catch {}
     } else {
       detail = `<div style="font-size:11px; color:var(--muted);">${l.quantity} шт. × ${l.price_per_unit} DC/шт</div>`;
