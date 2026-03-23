@@ -2223,7 +2223,7 @@ function handleCanvasClick(e) {
   });
 }
 
-function openTowerInfo(tower) {
+async function openTowerInfo(tower) {
   const modal = document.getElementById("tower-info-modal");
   const title = document.getElementById("tower-info-title");
   const content = document.getElementById("tower-info-content");
@@ -2254,16 +2254,43 @@ function openTowerInfo(tower) {
     contributeBtn.style.display = "none";
     resourceAmountInput.style.display = "none";
 
-    if (myContributed > 0) {
-  const pending = myAsset?.pending_income || 0;
+    // Показываем доход — для вкладчиков И для контролёров
+const pending = myAsset?.pending_income || 0;
+const isController = String(tower.controller_id) === String(currentUserId);
+
+if (myContributed > 0 || isController) {
+  let actualPending = pending;
+
+  if (isController && myContributed === 0) {
+    try {
+      const incomeRes = await fetch(`${API_URL}/tower/income?user_id=${currentUserId}`);
+      const incomeData = await incomeRes.json();
+      const towerIncome = incomeData.find(r => r.tower_id === tower.id);
+      actualPending = towerIncome?.amount || 0;
+    } catch(e) {}
+  }
+
   document.getElementById('tower-income-amount').innerText =
-    pending > 0 ? `${pending.toFixed(4)} DC` : `0.0000 DC`;
+    actualPending > 0 ? `${actualPending.toFixed(4)} DC` : `0.0000 DC`;
   incomeSection.dataset.towerId = tower.id;
   incomeSection.style.display = 'block';
+
   const collectBtn = incomeSection.querySelector('button');
   if (collectBtn) {
-    collectBtn.disabled = pending <= 0;
-    collectBtn.style.opacity = pending <= 0 ? '0.5' : '1';
+    collectBtn.disabled = actualPending <= 0;
+    collectBtn.style.opacity = actualPending <= 0 ? '0.5' : '1';
+  }
+
+  // Бейдж контролёра
+  if (isController) {
+    const existingBadge = incomeSection.querySelector('.controller-badge');
+    if (!existingBadge) {
+      const badge = document.createElement('div');
+      badge.className = 'controller-badge';
+      badge.style.cssText = 'font-size:11px; color:#f5c77a; margin-bottom:4px;';
+      badge.innerText = '👑 Вы контролёр этой башни';
+      incomeSection.insertBefore(badge, incomeSection.firstChild);
+    }
   }
 } else {
   incomeSection.style.display = 'none';
