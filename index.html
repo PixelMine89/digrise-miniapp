@@ -2254,22 +2254,22 @@ async function openTowerInfo(tower) {
     contributeBtn.style.display = "none";
     resourceAmountInput.style.display = "none";
 
-    // Показываем доход — для вкладчиков И для контролёров
-const pending = myAsset?.pending_income || 0;
+    // Показываем кнопку дохода если есть хоть какой-то доход — независимо от роли
+let actualPending = myAsset?.pending_income || 0;
+
+// Если нет в кэше — запрашиваем напрямую (для контролёров без вклада)
+if (actualPending === 0) {
+  try {
+    const incomeRes = await fetch(`${API_URL}/tower/income?user_id=${currentUserId}`);
+    const incomeData = await incomeRes.json();
+    const towerIncome = incomeData.find(r => r.tower_id === tower.id);
+    actualPending = towerIncome?.amount || 0;
+  } catch(e) {}
+}
+
 const isController = String(tower.controller_id) === String(currentUserId);
 
-if (myContributed > 0 || isController) {
-  let actualPending = pending;
-
-  if (isController && myContributed === 0) {
-    try {
-      const incomeRes = await fetch(`${API_URL}/tower/income?user_id=${currentUserId}`);
-      const incomeData = await incomeRes.json();
-      const towerIncome = incomeData.find(r => r.tower_id === tower.id);
-      actualPending = towerIncome?.amount || 0;
-    } catch(e) {}
-  }
-
+if (actualPending > 0 || myContributed > 0 || isController) {
   document.getElementById('tower-income-amount').innerText =
     actualPending > 0 ? `${actualPending.toFixed(4)} DC` : `0.0000 DC`;
   incomeSection.dataset.towerId = tower.id;
@@ -2281,16 +2281,14 @@ if (myContributed > 0 || isController) {
     collectBtn.style.opacity = actualPending <= 0 ? '0.5' : '1';
   }
 
-  // Бейдж контролёра
+  // Убираем старый бейдж если есть
+  incomeSection.querySelector('.controller-badge')?.remove();
   if (isController) {
-    const existingBadge = incomeSection.querySelector('.controller-badge');
-    if (!existingBadge) {
-      const badge = document.createElement('div');
-      badge.className = 'controller-badge';
-      badge.style.cssText = 'font-size:11px; color:#f5c77a; margin-bottom:4px;';
-      badge.innerText = '👑 Вы контролёр этой башни';
-      incomeSection.insertBefore(badge, incomeSection.firstChild);
-    }
+    const badge = document.createElement('div');
+    badge.className = 'controller-badge';
+    badge.style.cssText = 'font-size:11px; color:#f5c77a; margin-bottom:4px;';
+    badge.innerText = '👑 Вы контролёр этой башни';
+    incomeSection.insertBefore(badge, incomeSection.firstChild);
   }
 } else {
   incomeSection.style.display = 'none';
