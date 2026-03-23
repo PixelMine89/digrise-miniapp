@@ -4827,10 +4827,12 @@ async function readOrder(orderId) {
     } else if (result.type === 'pickaxe') {
       if (result.success) {
         icon = '✅'; title = 'Кирка готова!';
-        text = `${recipeName}\n\n⚡ +${result.bonus_mining}% к добыче\n🛡 Прочность: ${result.durability}\n\nДобавлена в инвентарь.`;
+        const timeStr = result.bonus_time > 0 ? `\n⏱ +${result.bonus_time} мин. к сессии` : '';
+        text = `${recipeName}\n\n⚡ +${result.bonus_mining}% к добыче${timeStr}\n🛡 Прочность: ${result.durability}\n\nДобавлена в инвентарь.`;
       } else {
         icon = '⚠️'; title = 'Бракованная кирка';
-        text = `${recipeName} [Брак]\n\n⚡ +${result.bonus_mining}% к добыче (снижено)\n🛡 Прочность: ${result.durability} (снижена)\n\nДобавлена в инвентарь с пометкой [Брак].`;
+        const defTimeStr = result.bonus_time > 0 ? `\n⏱ +${result.bonus_time} мин. к сессии (снижено)` : '';
+        text = `${recipeName} [Брак]\n\n⚡ +${result.bonus_mining}% к добыче (снижено)${defTimeStr}\n🛡 Прочность: ${result.durability} (снижена)\n\nДобавлена в инвентарь с пометкой [Брак].`;
       }
     } else {
       icon = '✅'; title = 'Готово'; text = recipeName;
