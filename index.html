@@ -3134,8 +3134,47 @@ canvas.addEventListener("touchend", e => {
   }
 }, { passive: false }); // passive: false нужен для preventDefault
 
-// для десктопа
-canvas.addEventListener("click", handleCanvasClick);
+// ===== MOUSE EVENTS (для ПК) =====
+canvas.addEventListener("mousedown", e => {
+  isDragging = false;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  touchStartX = e.clientX;
+  touchStartY = e.clientY;
+  touchMoved = false;
+  canvas.dataset.mousedown = '1';
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!canvas.dataset.mousedown) return;
+  const dx = e.clientX - touchStartX;
+  const dy = e.clientY - touchStartY;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) touchMoved = true;
+
+  offsetX += e.clientX - lastX;
+  offsetY += e.clientY - lastY;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  drawWorld();
+});
+
+canvas.addEventListener("mouseup", e => {
+  if (!canvas.dataset.mousedown) return;
+  canvas.dataset.mousedown = '';
+
+  if (!touchMoved) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const tapX = (e.clientX - rect.left) * scaleX;
+    const tapY = (e.clientY - rect.top) * scaleY;
+    handleCanvasClick({ offsetX: tapX, offsetY: tapY });
+  }
+});
+
+canvas.addEventListener("mouseleave", () => {
+  canvas.dataset.mousedown = '';
+});
 
 // =======================
 // MINE FUNCTIONS
