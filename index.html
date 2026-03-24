@@ -6137,6 +6137,7 @@ function renderContest(data) {
 async function joinContest() {
   if (_actionLock) return;
   showActionLoader();
+  alert("test_1");
   try {
     const res = await fetch(`${API_URL}/contest/join`, {
       method: 'POST', headers: authHeaders(),
@@ -6152,6 +6153,7 @@ async function joinContest() {
       alert(msgs[data.error] || data.error);
       return;
     }
+    alert("test_2");
     if (data.matched) alert('⚔️ Соперник найден! Состязание началось!');
     await loadContest();
     await loadPlayerDataOnly();
