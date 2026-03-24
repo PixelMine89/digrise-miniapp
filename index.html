@@ -3596,6 +3596,7 @@ async function startMining() {
         CRAFT_ORDER_IN_PROGRESS: '🏭 У вас активный заказ крафта! Сначала завершите его.',
         MINE_EMPTY: 'Ресурсы закончились',
         MINE_COLLAPSED: 'Шахта обвалилась'
+        PICKAXE_REQUIRED: `⛏️ Для этой шахты нужна ${data.required_label || 'кирка'}!\n\nЗакажите её в Кузнице и экипируйте!`
       };
       alert(msgs[data.error] || data.error);
       return;
@@ -3614,6 +3615,18 @@ async function startMining() {
       document.body.appendChild(brokenNote);
       setTimeout(() => brokenNote.remove(), 3000);
     }
+    if (data.efficiency_penalty && data.efficiency_penalty < 1.0) {
+  const penNote = document.createElement('div');
+  penNote.style.cssText = `
+    position:fixed; bottom:180px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(180deg,#f5a623,#c47d10); color:#fff;
+    padding:10px 18px; border-radius:12px; font-size:13px; font-weight:700;
+    z-index:99999; box-shadow:0 4px 20px rgba(245,166,35,0.4); text-align:center;
+  `;
+  penNote.innerText = '⚠️ Нет кирки — эффективность -50%\nВозьми кирку для полной добычи';
+  document.body.appendChild(penNote);
+  setTimeout(() => penNote.remove(), 4000);
+  }
     document.getElementById('mining-start-btn').style.display = 'none';
     document.getElementById('mining-session-block').style.display = 'block';
     window._activeSession = data.session;
