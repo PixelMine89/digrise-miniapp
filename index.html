@@ -6137,10 +6137,10 @@ function renderContest(data) {
 async function joinContest() {
   if (_actionLock) return;
   showActionLoader();
-  alert("test_1");
   try {
     const res = await fetch(`${API_URL}/contest/join`, {
-      method: 'POST', headers: authHeaders(),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: currentUserId })
     });
     const data = await res.json();
@@ -6167,7 +6167,8 @@ async function leaveContestQueue() {
   showActionLoader();
   try {
     const res = await fetch(`${API_URL}/contest/leave-queue`, {
-      method: 'POST', headers: authHeaders(),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: currentUserId })
     });
     const data = await res.json();
@@ -6186,7 +6187,8 @@ async function contributeContest(contestId, resource) {
   showActionLoader();
   try {
     const res = await fetch(`${API_URL}/contest/contribute`, {
-      method: 'POST', headers: authHeaders(),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: currentUserId, contest_id: contestId, amount: qty })
     });
     const data = await res.json();
@@ -6207,7 +6209,8 @@ async function finishContest(contestId) {
   showActionLoader();
   try {
     const res = await fetch(`${API_URL}/contest/finish`, {
-      method: 'POST', headers: authHeaders(),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: currentUserId, contest_id: contestId })
     });
     const data = await res.json();
