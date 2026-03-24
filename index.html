@@ -6153,7 +6153,6 @@ async function joinContest() {
       alert(msgs[data.error] || data.error);
       return;
     }
-    alert("test_2");
     if (data.matched) alert('⚔️ Соперник найден! Состязание началось!');
     await loadContest();
     await loadPlayerDataOnly();
