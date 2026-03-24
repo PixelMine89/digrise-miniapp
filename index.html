@@ -1637,7 +1637,7 @@ async function loadPlayer() {
   loadPool();
   await initDepositStatus();
 
-  playerInterval = setInterval(loadPlayerDataOnly, 2000);
+  playerInterval = setInterval(loadPlayerDataOnly, 10000);
 
   showTab("mine");
   await loadWorld();
