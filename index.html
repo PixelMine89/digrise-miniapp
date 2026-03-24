@@ -546,6 +546,22 @@ button:disabled {
   </div>
 
 </div>
+    <!-- СОСТЯЗАНИЕ ШАХТЁРОВ -->
+<div id="contest-section" style="margin-top:18px;">
+  <div style="position:relative;overflow:hidden;background:linear-gradient(145deg,#0a1a2e,#0f1a1a);border-radius:18px;padding:18px 16px;border:1px solid rgba(79,220,255,0.25);box-shadow:0 0 30px rgba(79,220,255,0.08);">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#4fdcff,transparent);"></div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#0a2a3a,#051a1a);border:1px solid rgba(79,220,255,0.3);display:flex;align-items:center;justify-content:center;font-size:22px;">⚔️</div>
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#4fdcff;">СОСТЯЗАНИЕ ШАХТЁРОВ</div>
+        <div style="font-size:10px;color:#3a6a7a;">вложи больше — победи</div>
+      </div>
+    </div>
+
+    <div id="contest-ui"></div>
+  </div>
+</div>
   </div>
   
   <!-- ===== CRAFT ===== -->
@@ -1627,6 +1643,7 @@ async function loadPlayer() {
   await loadWorld();
   await loadFurnaceData();
   await loadPlayerAssets();
+  await loadContest();
 
   //alert("Внимание! Тестовый режим! Прогресс будет сброшен при официальном запуске 20.03.2026 12:00, не совершайте покупок!");
 }
@@ -1640,6 +1657,7 @@ async function loadPlayerDataOnly() {
   loadPool();
   updateWorld();
   loadPlayerAssets();
+  await loadContest();
 }
 
 function openMineInfo() {
@@ -6000,6 +6018,200 @@ async function usePromoCode() {
     input.value = '';
     await loadPlayerDataOnly();
 
+  } finally {
+    hideActionLoader();
+  }
+}
+
+// =======================
+// CONTEST
+// =======================
+let _contestInterval = null;
+
+async function loadContest() {
+  try {
+    const res = await fetch(`${API_URL}/contest/status?user_id=${currentUserId}`);
+    const data = await res.json();
+    renderContest(data);
+  } catch(e) { console.error('loadContest:', e); }
+}
+
+function renderContest(data) {
+  const el = document.getElementById('contest-ui');
+
+  if (data.contest) {
+    const c = data.contest;
+    const isP1 = String(c.player1_id) === String(currentUserId);
+    const myAmount = isP1 ? c.player1_amount : c.player2_amount;
+    const oppAmount = isP1 ? c.player2_amount : c.player1_amount;
+    const now = Date.now();
+    const rem = Math.max(0, c.ends_at - now);
+    const mins = Math.floor(rem / 60000);
+    const secs = Math.floor((rem % 60000) / 1000);
+    const isDone = rem <= 0;
+    const pct = Math.min(100, ((now - c.started_at) / (c.ends_at - c.started_at)) * 100);
+
+    const RESOURCE_ICONS = { stone:'🪨', coal:'⚫', copper:'🟠', iron:'⚙️', gold:'🌕', diamond:'💎' };
+    const icon = RESOURCE_ICONS[c.resource] || '📦';
+
+    el.innerHTML = `
+      <div style="background:rgba(79,220,255,0.07);border:1px solid rgba(79,220,255,0.2);border-radius:12px;padding:12px;margin-bottom:10px;">
+        <div style="text-align:center;font-size:12px;color:#3a6a7a;margin-bottom:6px;">Ресурс состязания</div>
+        <div style="text-align:center;font-size:20px;font-weight:800;color:#4fdcff;">${icon} ${c.resource}</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:10px;">
+        <div style="text-align:center;padding:10px;background:rgba(76,217,100,0.08);border-radius:10px;border:1px solid rgba(76,217,100,0.2);">
+          <div style="font-size:10px;color:#3a7a4a;margin-bottom:3px;">Вы</div>
+          <div style="font-size:20px;font-weight:800;color:#4cd964;">${myAmount}</div>
+        </div>
+        <div style="font-size:18px;color:#4fdcff;font-weight:700;">VS</div>
+        <div style="text-align:center;padding:10px;background:rgba(255,107,107,0.08);border-radius:10px;border:1px solid rgba(255,107,107,0.2);">
+          <div style="font-size:10px;color:#7a3a3a;margin-bottom:3px;">Соперник</div>
+          <div style="font-size:20px;font-weight:800;color:#ff6b6b;">${oppAmount}</div>
+        </div>
+      </div>
+
+      <div style="background:#1b2032;border-radius:6px;height:6px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${pct}%;background:#4fdcff;border-radius:6px;transition:width 1s linear;"></div>
+      </div>
+      <div style="text-align:center;font-size:13px;font-weight:700;color:${isDone?'#f5c77a':'#4fdcff'};margin-bottom:10px;">
+        ${isDone ? '✅ Состязание завершено!' : `Осталось: ${mins}м ${String(secs).padStart(2,'0')}с`}
+      </div>
+
+      ${isDone ? `
+        <button onclick="finishContest(${c.id})" style="width:100%;padding:12px;background:linear-gradient(180deg,#f5c77a,#d6a956);color:#000;font-weight:800;border-radius:12px;font-size:14px;">
+          🏆 Завершить и получить результат
+        </button>
+      ` : `
+        <div style="display:flex;gap:8px;">
+          <input id="contest-amount-input" type="number" min="1" placeholder="Количество ${c.resource}"
+            style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(79,220,255,0.2);background:rgba(0,0,0,0.3);color:#fff;font-size:13px;"/>
+          <button onclick="contributeContest(${c.id},'${c.resource}')"
+            style="padding:10px 16px;border-radius:10px;background:linear-gradient(180deg,#4fdcff,#2aa8cc);color:#000;font-weight:800;font-size:13px;flex-shrink:0;">
+            ⚔️ Вложить
+          </button>
+        </div>
+      `}
+    `;
+
+    if (!isDone && !_contestInterval) {
+      _contestInterval = setInterval(() => loadContest(), 5000);
+    }
+    if (isDone && _contestInterval) {
+      clearInterval(_contestInterval);
+      _contestInterval = null;
+    }
+
+  } else if (data.in_queue) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:16px;">
+        <div style="font-size:24px;margin-bottom:8px;">⏳</div>
+        <div style="font-size:14px;font-weight:700;color:#f5c77a;margin-bottom:4px;">Ищем соперника...</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Ожидайте. Стоимость заявки: 50 🪨</div>
+        <button onclick="leaveContestQueue()"
+          style="padding:8px 20px;background:#333;color:#ff6b6b;border-radius:10px;font-size:13px;">
+          Отменить заявку
+        </button>
+      </div>
+    `;
+    if (!_contestInterval) {
+      _contestInterval = setInterval(() => loadContest(), 3000);
+    }
+  } else {
+    if (_contestInterval) { clearInterval(_contestInterval); _contestInterval = null; }
+    el.innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+        Сразись с другим игроком! Вложи больше ресурса за 1 час — и заберёшь 75% вложенного соперником.
+        25% ресурса побеждённого сгорает.<br>
+        <span style="color:#f5c77a;">Вступительный взнос: 50 🪨 камня</span>
+      </div>
+      <button onclick="joinContest()"
+        style="width:100%;padding:12px;background:linear-gradient(180deg,#4fdcff,#2aa8cc);color:#000;font-weight:800;border-radius:12px;font-size:14px;">
+        ⚔️ Найти соперника (50 🪨)
+      </button>
+    `;
+  }
+}
+
+async function joinContest() {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/contest/join`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ user_id: currentUserId })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = {
+        NOT_ENOUGH_STONE: 'Нужно 50 🪨 камня',
+        ALREADY_IN_QUEUE: 'Вы уже в очереди',
+        ALREADY_IN_CONTEST: 'У вас уже есть активное состязание'
+      };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    if (data.matched) alert('⚔️ Соперник найден! Состязание началось!');
+    await loadContest();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function leaveContestQueue() {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/contest/leave-queue`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ user_id: currentUserId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    await loadContest();
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function contributeContest(contestId, resource) {
+  if (_actionLock) return;
+  const qty = parseInt(document.getElementById('contest-amount-input')?.value);
+  if (!qty || qty <= 0) { alert('Введите количество'); return; }
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/contest/contribute`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ user_id: currentUserId, contest_id: contestId, amount: qty })
+    });
+    const data = await res.json();
+    if (data.error) {
+      const msgs = { NOT_ENOUGH_RESOURCES: `Недостаточно ${resource}`, CONTEST_ENDED: 'Время вышло' };
+      alert(msgs[data.error] || data.error);
+      return;
+    }
+    renderContest({ contest: data.contest, in_queue: false });
+    await loadPlayerDataOnly();
+  } finally {
+    hideActionLoader();
+  }
+}
+
+async function finishContest(contestId) {
+  if (_actionLock) return;
+  showActionLoader();
+  try {
+    const res = await fetch(`${API_URL}/contest/finish`, {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ user_id: currentUserId, contest_id: contestId })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    await loadContest();
+    await loadPlayerDataOnly();
   } finally {
     hideActionLoader();
   }
